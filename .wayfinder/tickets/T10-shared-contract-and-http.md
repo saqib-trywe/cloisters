@@ -1,0 +1,16 @@
+---
+id: T10
+title: Define the shared contract and HTTP adapter
+type: grilling
+status: open
+assignee: null
+blocked-by: [T07, T08, T09]
+---
+
+## Question
+
+Tikka shared one tapir contract across daemon, UI and CLI, and derived the MCP schemas from it. What plays that role
+in Clojure? `.cljc` namespaces with malli (or spec) schemas shared by daemon, CLI and UI? How are request validation,
+JSON coercion, OpenAPI (if any) and MCP tool input schemas derived from one source? The REST shape is inherited from
+[Design the HTTP API shape](../../docs/inherited/tickets/T09-http-api-shape.md); this ticket also adds the page
+endpoints.
