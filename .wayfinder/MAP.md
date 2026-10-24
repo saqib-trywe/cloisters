@@ -85,6 +85,9 @@ Decided for cloisters:
 - [Survey the Clojure ecosystem for cloisters](tickets/T01-clojure-ecosystem-survey.md): Ring + reitit, next.jdbc on
   SQLite with FTS5, babashka at ~13 ms, nextjournal/markdown on all three runtimes, malli shared via `.cljc`; MCP has
   two young Clojure libraries and a Java SDK whose 2026-07-28 support is still a milestone.
+- [Amend scope and shape for the wiki](tickets/T02-amend-scope-for-the-wiki.md): pages add sibling rank, a reversible
+  archive (never deletion) and a derived recent-changes view; no labels, comments, templates or attachments on pages;
+  MCP parity with the UI for every page operation.
 
 ## Not yet specified
 
@@ -101,5 +104,8 @@ Decided for cloisters:
 - Multi-user in any form, and hosted or remote deployment: inherited from tikka's
   [Scope and shape](../docs/inherited/tickets/T00-scope-and-shape.md).
 - Tikka's refused feature list (workflows, custom fields, sprints, boards, estimates, time tracking, notifications,
-  dashboards, plugins, epics/versions/components, curated link types), unless Amend scope and shape for the wiki
-  changes it.
+  dashboards, plugins, attachments, epics/versions/components, curated link types): holds unchanged, per
+  [Amend scope and shape for the wiki](tickets/T02-amend-scope-for-the-wiki.md).
+- The wiki's refusals, from the same ticket: page labels, comments, templates, watching, images and attachments,
+  diagram rendering, page permissions, drafts, macros and transclusion, inline comments and reactions, PDF or Word
+  export, WYSIWYG, structural page-to-issue edges.
