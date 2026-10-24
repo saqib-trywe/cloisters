@@ -82,6 +82,10 @@ Inherited from tikka unchanged (the ticket in the snapshot holds the decision):
 
 Decided for cloisters:
 
+- [Survey the Clojure ecosystem for cloisters](tickets/T01-clojure-ecosystem-survey.md): Ring + reitit, next.jdbc on
+  SQLite with FTS5, babashka at ~13 ms, nextjournal/markdown on all three runtimes, malli shared via `.cljc`; MCP has
+  two young Clojure libraries and a Java SDK whose 2026-07-28 support is still a milestone.
+
 ## Not yet specified
 
 - **The event log for pages.** How page saves, moves and renames show up on timelines and in the global sequence,
