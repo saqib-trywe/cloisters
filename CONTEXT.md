@@ -52,7 +52,17 @@ A wiki document: a title and a markdown body, belonging to one project's **page 
 A page has at most one parent page and any number of child pages; pages without a parent
 are the tree's roots. A page tree never crosses projects.
 
-A page is knowledge, not work: it has no status, assignee, claim or blocking edges.
+A page is knowledge, not work: it has no status, assignee, claim or blocking edges. Pages
+carry no labels and take no comments: to discuss a page, open an issue that mentions it.
+
+Siblings are ordered by **rank**, as issues are, defaulting to creation order.
+
+### Archived
+
+A page is either **live** or **archived**. Archiving is how a page leaves the way, since
+pages, like issues, are never deleted. An archived page keeps its identity, its history,
+and the links to and from it; it is only left out of the page tree and of search unless
+asked for. Archiving is reversible.
 
 ### Revision
 
@@ -177,15 +187,17 @@ Labels are case-insensitive: `Bug` and `bug` are the same label.
 
 ## Rank
 
-The position of an issue in a total order. Defaults to the issue's sequence number, so
-order is deterministic without anyone setting it, and can be overwritten to reorder.
+The position of an issue in a total order, or of a page among its siblings. An issue's rank
+defaults to its sequence number and a page's to its creation order, so order is
+deterministic without anyone setting it, and can be overwritten to reorder.
 
 Rank is not priority. Cloisters has no priority.
 
-A rank is any decimal number, so an issue can be placed between two others (3.5 sits
+A rank is any decimal number, so an issue or page can be placed between two others (3.5 sits
 between 3 and 4) without moving either.
 
-Ranks need not be unique; issues with equal rank are ordered by issue number.
+Ranks need not be unique; issues with equal rank are ordered by issue number, and pages by
+creation order.
 
 ## Event
 
