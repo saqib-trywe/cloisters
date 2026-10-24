@@ -3,7 +3,7 @@ id: T02
 title: Amend scope and shape for the wiki
 type: grilling
 status: open
-assignee: null
+assignee: saqib
 blocked-by: []
 ---
 
