@@ -50,6 +50,11 @@ may state the version it last read; if the issue has moved on, the write is refu
 rather than silently overwriting. Claims, comments, status changes and edges do not move
 it — they have their own guards, or never conflict.
 
+A page has a version too, and it is simply its latest revision number: only title and body
+changes move it. The web UI's page editor always states the version it loaded, so a human
+never silently overwrites an agent's edit; a stale save is refused and the human merges by
+hand.
+
 ## Page
 
 A wiki document: a title and a markdown body, belonging to one project's **page tree**.
@@ -80,9 +85,22 @@ the children first — nothing disappears as a side effect.
 
 ### Revision
 
-A saved state of a page. Every save makes a new revision; revisions are never edited or
-removed, so a page's history can always be read, compared, and an earlier revision
-restored — restoring makes a new revision, it does not rewind.
+A saved state of a page's content: its title and body. Every save that changes either makes
+a new revision; revisions are never edited or removed, so a page's history can always be
+read, compared, and an earlier revision restored — restoring makes a new revision, it does
+not rewind, and the new revision records which one it restored. Revisions are numbered per
+page (`CLO-57` r3).
+
+A revision is not a second record beside the timeline: it is the page as it stood after an
+event that changed its content. Moving, reordering and archiving are events on the page's
+timeline but make no revision, so restoring puts back only what the page said. An archived page can
+still be edited: archiving hides a page, it does not lock it.
+
+### Edit summary
+
+A short note on why a page changed, given with the write and kept on its event. Optional
+when editing; required when archiving or unarchiving, as closing and reopening an issue
+always say why. It is not a comment: pages take no comments.
 
 ### Mentions of pages
 
@@ -216,24 +234,25 @@ Ranks need not be unique; equal ranks are ordered by number.
 
 ## Event
 
-A record that something about an issue changed: who, when, which field, and from what to
-what. Events accumulate and are never edited or removed, forming an issue's **timeline**.
+A record that something about an issue or page changed: who, when, which field, and from what to
+what. Events accumulate and are never edited or removed, forming an issue's or page's **timeline**.
 
-An issue's current state is the authority on what is true now; the timeline is the record
+An issue's or page's current state is the authority on what is true now; the timeline is the record
 of how it got there. They are separate on purpose.
 
 One write is one event, however many fields it changes; a comment given with the write
-belongs to that event. A write that changes nothing records no event.
+belongs to that event, as does a page's edit summary. A write that changes nothing records no event.
 
-An event belongs to the issue written to, and also appears on the timeline of every issue
-whose parent or blocking edges it changed, or that it unblocked or blocked again — closing
-a blocker shows on each dependent it frees. A **mention** does not carry an event onto the
-mentioned issue — the backlink appears, the timeline stays quiet.
+An event belongs to the issue or page written to, and also appears on the timeline of every
+issue or page whose parent or blocking edges it changed, or that it unblocked or blocked
+again. Closing a blocker shows on each dependent it frees; moving a page shows on its old
+and new parent. A **mention** does not carry an event onto the mentioned issue or page —
+the backlink appears, the timeline stays quiet.
 
 The event names **who** by the surface and client that made the write (an agent through
 MCP, the CLI, the web UI), not by a person.
 
-An issue's **updated** time is the time of the latest event on its timeline — a comment or
+An issue's or page's **updated** time is the time of the latest event on its timeline — a comment or
 a claim updates an issue as much as a title change does.
 
 ## Ready

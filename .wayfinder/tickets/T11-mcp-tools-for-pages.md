@@ -24,3 +24,10 @@ comments.
 Pages share the issues' id space; a tool given the wrong kind is refused naming what the id is. Moves set a parent
 (or none) and may set a rank; archiving refuses while live children exist and names them. Mention lists say when a
 page is archived.
+
+## Inherited from [Define page revisions and edit conflicts](T05-page-revisions-and-conflicts.md)
+
+Revisions are numbered per page (r1, r2, …) and are a view over the page's events. Writes take `expected_version`
+(optional) and `body_edits`, as issues do, plus an edit summary, required to archive or unarchive. Restore takes a
+revision and makes a new one. Diff compares any two revisions of one page. Decide which of history, diff and restore
+earn a tool under the invariant-or-race rule.

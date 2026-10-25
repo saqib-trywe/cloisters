@@ -94,11 +94,12 @@ Decided for cloisters:
 - [Define page identity and linking](tickets/T04-page-identity-and-linking.md): pages share the project's id sequence
   (`CLO-57`) and URL shape (`/CLO-57`); page links are just mentions; titles not unique; moves keep rank, never
   cross projects; archiving refuses while live children exist.
+- [Define page revisions and edit conflicts](tickets/T05-page-revisions-and-conflicts.md): a revision is the page
+  after a title or body event, numbered r1, r2, …; version is the revision number; the UI editor always guards and
+  merges by hand; edit summaries, required to archive; restore makes a new revision.
 
 ## Not yet specified
 
-- **The event log for pages.** How page saves, moves and renames show up on timelines and in the global sequence,
-  and how events relate to revisions. Waits on page identity and revisions.
 - **Export, snapshots and restore covering pages.** Tikka's durability decision covers issues only.
 - **Mention and link detection without Laika.** The rules are inherited, now covering pages, with link paths
   `/KEY-N`; which Clojure markdown parser enforces them on both daemon and UI waits on the web UI choice.

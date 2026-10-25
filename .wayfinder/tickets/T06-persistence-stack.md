@@ -20,3 +20,10 @@ and pages; how revisions are stored.
 
 The store is `$XDG_DATA_HOME/cloisters/cloisters.db` (or `$CLOISTERS_HOME/data/`), with snapshots in `backups/` and
 `daemon.lock` beside it.
+
+## Inherited from [Define page revisions and edit conflicts](T05-page-revisions-and-conflicts.md)
+
+Revisions are not stored separately: a revision is the page after an event that changed its title or body, and
+events keep full before and after text. Page events use tikka's `event`, `change` and `event_related` shape; a
+restore records its source revision on the event. Per-page revision numbers are derived, so decide whether to store
+them for cheap lookup.
