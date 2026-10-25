@@ -34,3 +34,13 @@ Grilled with saqib, 2026-10-25, in one round. **Hand-rolled JSON-RPC as a Ring h
   prerelease carrying 2026-07-28 scenarios) and bumped deliberately.
 - **Handed on** to [Define the shared contract and HTTP adapter](T10-shared-contract-and-http.md): the HTTP server
   and JSON library under the handler, and deriving `inputSchema` and `outputSchema` from the shared contract.
+
+> **Amended by [Walking skeleton: surfaces over one core, issues and pages](T13-walking-skeleton.md):** Claude Code
+> negotiated 2026-07-28 against the hand-rolled handler, and every applicable conformance scenario passed at both
+> revisions. Protocol details to build to: an unsupported modern version is **`-32022`** (400) with
+> `data: {supported, requested}`; header checks (`MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`) run **before** the
+> version check; **`Mcp-Method` is required on every modern request**, and a missing one is `-32020` like a mismatch;
+> the suite's `caching` scenario wants `ttlMs` and `cacheScope` on `server/discover` and `tools/list`. The requirement
+> sets include fixture-tool, resources, prompts and input-required scenarios that cloisters cannot pass by design, so
+> CI runs `--requirements 2025-11-25` and `--requirements 2026-07-28` against an **`--expected-failures` baseline**
+> listing exactly those.

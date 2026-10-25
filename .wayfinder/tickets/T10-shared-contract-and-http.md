@@ -133,3 +133,11 @@ Reuse where the meaning is the same; two new codes.
 > **Amended by [Extend the query grammar and search to pages](T12-query-grammar-for-pages.md):** search is one route,
 > `GET /api/search?q=`, over both kinds, replacing `GET /api/issues?q=`; the envelope is `{effective_query, results,
 > next_cursor, has_more}`. There is no tree route: a tree is a query.
+
+> **Amended by [Walking skeleton: surfaces over one core, issues and pages](T13-walking-skeleton.md):** the stack held:
+> Ring 1.15.6 on Jetty 12.1, reitit, jsonista, and malli schemas validated by the core and emitting JSON Schema that
+> Claude Code honoured. Three additions. **The SSE stream opens with a comment line**, because Jetty commits headers
+> only on the first write. **Every adapter has a catch-all** answering an unexpected exception in the contract's shape
+> (JSON or text body, MCP `-32603`) rather than Jetty's HTML 500 page. **One jsonista mapper** does the snake_case
+> conversion for both HTTP bodies and MCP `structuredContent`, with nulls dropped before encoding, rather than a second
+> hand-written walk.
