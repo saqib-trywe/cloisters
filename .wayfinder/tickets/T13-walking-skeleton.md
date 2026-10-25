@@ -3,7 +3,7 @@ id: T13
 title: Walking skeleton: surfaces over one core, issues and pages
 type: prototype
 status: open
-assignee: null
+assignee: saqib
 blocked-by: [T03, T04, T06, T10]
 ---
 
