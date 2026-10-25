@@ -43,3 +43,10 @@ like any other view.
 
 Page routes exist for get, create, update, archive, unarchive, restore, revisions and diff under `/api/pages`;
 search and tree routes are yours, in the same REST shape and paging envelope.
+
+## Inherited from [Extend the MCP tool contract for pages](T11-mcp-tools-for-pages.md)
+
+Sixteen tools so far: nine issue tools plus `get_page`, `create_page`, `update_page`, `archive_page`,
+`unarchive_page`, `restore_page`, `diff_page`. Searching pages is yours: extend `search_issues`, rename it, or add
+`search_pages`. Page rows are id, title, parent, archived, rank, updated, revision; mention lists carry each entry's
+kind.

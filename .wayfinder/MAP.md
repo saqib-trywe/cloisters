@@ -112,6 +112,9 @@ Decided for cloisters:
 - [Define the shared contract and HTTP adapter](tickets/T10-shared-contract-and-http.md): malli contract on the
   daemon only, validated by the core; Ring on Jetty with reitit routing and jsonista; `Accept: text/plain` for the CLI;
   `/api/pages` routes; new codes `wrong_kind` and `live_children`.
+- [Extend the MCP tool contract for pages](tickets/T11-mcp-tools-for-pages.md): seven page tools (get, create,
+  update, archive, unarchive, restore, diff), sixteen in all; a live page never has an archived parent
+  (`archived_parent`); `get_page` returns the full body; mention lists carry kind.
 
 ## Not yet specified
 

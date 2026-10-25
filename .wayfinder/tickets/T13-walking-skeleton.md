@@ -53,3 +53,8 @@ gate.
 Ring on Jetty 12, reitit for routing only, jsonista, malli contract validated by the core. Prove the async SSE
 handler resumes by `Last-Event-ID`, that `Accept: text/plain` returns MCP's text rendering, that malformed JSON gets
 the `invalid_argument` body, and that `wrong_kind` lets the CLI's `show` find a page.
+
+## Inherited from [Extend the MCP tool contract for pages](T11-mcp-tools-for-pages.md)
+
+Call `create_page`, `get_page` and `update_page` from Claude Code over MCP, and see an issue's `get_issue`
+list the page among its backlinks with kind `page`.

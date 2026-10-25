@@ -80,8 +80,10 @@ and the links to and from it; it is only left out of the page tree and of search
 asked for. Archiving is reversible. Links to an archived page still resolve, marked as
 archived so a reader knows the page is stale.
 
-A page with live children cannot be archived; the refusal names them. Archive or move
-the children first — nothing disappears as a side effect.
+A live page never has an archived parent. So a page with live children cannot be
+archived — the refusal names them; archive or move the children first, and nothing
+disappears as a side effect — and no page can be unarchived, moved or created beneath an
+archived parent.
 
 ### Revision
 

@@ -126,3 +126,6 @@ Reuse where the meaning is the same; two new codes.
 | unknown revision | `not_found` | 404 | id and revision |
 | missing archive summary | `invalid_argument` | 400 | |
 | stale save | `stale_version` | 409 | current version, title and body as touched |
+
+> **Amended by [Extend the MCP tool contract for pages](T11-mcp-tools-for-pages.md):** a new code, **`archived_parent`**
+> (409, the parent as id and title), refuses unarchiving, moving or creating a live page beneath an archived parent.
