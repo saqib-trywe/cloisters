@@ -118,6 +118,8 @@ Decided for cloisters:
 - [Extend the query grammar and search to pages](tickets/T12-query-grammar-for-pages.md): one `search` over both
   kinds with a `kind:` filter implied by kind-only filters; `archived:no` by default; one FTS5 table; recent changes
   and trees are queries.
+- [Extend export and durability to pages](tickets/T14-export-and-durability-for-pages.md): snapshots and restore
+  cover pages unchanged; export adds `page` records, page events carry their revision; deterministic order.
 
 ## Not yet specified
 
