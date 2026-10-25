@@ -23,3 +23,9 @@ What exactly is a revision, and what happens when two writers edit one page?
 No drafts or publish step: saving is publishing. Decide whether archiving, unarchiving and sibling reordering
 make revisions, and whether a revision carries a save message (pages take no comments, so a save message is the only
 place a page records why it changed).
+
+## Inherited from [Define page identity and linking](T04-page-identity-and-linking.md)
+
+A page is `CLO-57` from the project's shared sequence; its title is a label, not unique. Moves (new parent, or
+none) keep rank unless set, and cycles are refused; moves between projects are refused. Archiving is refused while a
+page has live children. Decide whether a move, a rename or a rank change makes a revision.

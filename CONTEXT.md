@@ -5,8 +5,8 @@ decisions. Decisions live on [the map](.wayfinder/MAP.md); architecture lives in
 
 ## Project
 
-A namespace for issues and pages. Owns a short key (`CLO`), the sequence that numbers its
-issues, and one page tree. Projects do not nest and carry no configuration — they exist to
+A namespace for issues and pages. Owns a short key (`CLO`), the one sequence that numbers
+both its issues and its pages, and one page tree. Projects do not nest and carry no configuration — they exist to
 scope ids and nothing else.
 
 There is no separate *space*: where Confluence would say "the CLO space", cloisters says
@@ -39,6 +39,10 @@ distinction, which keeps cloisters ignorant of the vocabulary of whatever is usi
 A project key plus a monotonic integer: `CLO-42`. Assigned once, never reused, never
 changed. Numbers increase in creation order; they are not promised to be gapless. Chosen to be speakable aloud and typeable into a command line.
 
+Issues and pages draw from the same sequence, so an id names exactly one thing, issue or
+page, and the id alone does not say which. Asking for a page as an issue, or the reverse,
+is refused by saying what the id actually names.
+
 ### Version
 
 A counter on each issue that moves only when its title, body or labels change. A writer
@@ -55,14 +59,24 @@ are the tree's roots. A page tree never crosses projects.
 A page is knowledge, not work: it has no status, assignee, claim or blocking edges. Pages
 carry no labels and take no comments: to discuss a page, open an issue that mentions it.
 
-Siblings are ordered by **rank**, as issues are, defaulting to creation order.
+A page is identified like an issue: an id such as `CLO-57`, from its project's sequence.
+Its title is only a label — titles need not be unique — and a page never moves to another
+project, since its id carries the key.
+
+Siblings are ordered by **rank**, as issues are, defaulting to the page's number. A page
+**moves** by taking a new parent, or none; it keeps its rank unless the move sets one, and
+it can never move beneath itself.
 
 ### Archived
 
 A page is either **live** or **archived**. Archiving is how a page leaves the way, since
 pages, like issues, are never deleted. An archived page keeps its identity, its history,
 and the links to and from it; it is only left out of the page tree and of search unless
-asked for. Archiving is reversible.
+asked for. Archiving is reversible. Links to an archived page still resolve, marked as
+archived so a reader knows the page is stale.
+
+A page with live children cannot be archived; the refusal names them. Archive or move
+the children first — nothing disappears as a side effect.
 
 ### Revision
 
@@ -70,12 +84,11 @@ A saved state of a page. Every save makes a new revision; revisions are never ed
 removed, so a page's history can always be read, compared, and an earlier revision
 restored — restoring makes a new revision, it does not rewind.
 
-### Page link
+### Mentions of pages
 
-A reference to a page occurring in prose — in a page or in an issue. Like a mention it is
-derived from the text, never hand-authored, and the linked page gains a **backlink**.
-Pages can mention issues too, so backlinks run in both directions: an issue lists the
-pages that mention it, and a page lists the issues and pages that link to it.
+Pages are mentioned exactly as issues are — see **Mention** — so there is no separate
+kind of page link. Backlinks run in both directions: an issue lists the pages that
+mention it, and a page lists the issues and pages that mention it.
 
 ## Status
 
@@ -160,15 +173,18 @@ once all of them are closed.
 
 ### Mention
 
-A reference to an issue id occurring in an issue's title, body or comments, or in a page.
-Mentions are
-**derived**, not curated: writing `CLO-42` in prose creates the edge, and the mentioned
-issue gains a **backlink**. There is no way to hand-author or hand-remove a mention.
+A reference to an id occurring in prose: an issue's title, body or comments, or a page's
+title or body. The id may name an issue or a page. Mentions are **derived**, not
+curated: writing `CLO-42` in prose creates the edge, and whatever `CLO-42` names gains a
+**backlink**. There is no way to hand-author or hand-remove a mention.
+
+An id is written bare (`CLO-42`) or as a link to it (`[the glossary](/CLO-42)`). There is
+no link by title: titles change, ids don't.
 
 Only prose counts: an id inside code — an inline code span or a code block — is not a
 mention, so pasted logs and code don't create backlinks. An id counts only when its
-project exists; it may name an issue that doesn't exist yet, and becomes a live backlink
-when that issue is created. An issue never mentions itself.
+project exists; it may name something that doesn't exist yet, and becomes a live backlink
+when that issue or page is created. Nothing mentions itself.
 
 A mention reflects the current text: editing an id out of a title or body removes the
 backlink. Comments are never edited, so a mention in a comment is permanent.
@@ -187,17 +203,16 @@ Labels are case-insensitive: `Bug` and `bug` are the same label.
 
 ## Rank
 
-The position of an issue in a total order, or of a page among its siblings. An issue's rank
-defaults to its sequence number and a page's to its creation order, so order is
-deterministic without anyone setting it, and can be overwritten to reorder.
+The position of an issue in a total order, or of a page among its siblings. It defaults
+to the issue's or page's number, so order is deterministic without anyone setting it, and
+can be overwritten to reorder.
 
 Rank is not priority. Cloisters has no priority.
 
 A rank is any decimal number, so an issue or page can be placed between two others (3.5 sits
 between 3 and 4) without moving either.
 
-Ranks need not be unique; issues with equal rank are ordered by issue number, and pages by
-creation order.
+Ranks need not be unique; equal ranks are ordered by number.
 
 ## Event
 

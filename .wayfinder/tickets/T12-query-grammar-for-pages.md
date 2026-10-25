@@ -18,3 +18,8 @@ mentions, updated)? How are mixed results ranked and paged?
 Archived pages are excluded from search unless asked for. Recent changes is a listing of pages by updated time,
 derived with no state of its own; decide whether it mixes issues and pages. Pages carry no labels, so no label
 filters apply to them.
+
+## Inherited from [Define page identity and linking](T04-page-identity-and-linking.md)
+
+Pages share the issues' ids, so `mentions:CLO-57` and backlinks may name either kind. Titles are not unique, so a
+title search can return several pages.

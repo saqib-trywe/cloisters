@@ -19,3 +19,9 @@ same way, with the same mention and link detection, as the daemon.
 The page editor is a text area plus preview, pages only; no WYSIWYG, no upload control, no diagram rendering
 (source shows as a code block). Images with absolute URLs render as markdown does. Needs a recent-changes listing
 (pages by updated time) and hides archived pages by default. Anything the UI can do to a page, MCP can.
+
+## Inherited from [Define page identity and linking](T04-page-identity-and-linking.md)
+
+Every issue and page lives at `/CLO-57`; the UI routes by what the id names. Decide how a bare page id renders
+(id with a title on hover as issues get, or the title inline). Links to archived pages render muted and marked
+"archived".
