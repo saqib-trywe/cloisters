@@ -3,7 +3,7 @@ id: T06
 title: Choose the persistence stack
 type: grilling
 status: open
-assignee: null
+assignee: saqib
 blocked-by: [T01]
 ---
 
