@@ -31,3 +31,8 @@ mentioning a page, each showing the backlink, both at `/CLO-N`.
 Exercise the persistence stack end to end: the hand-rolled `user_version` migration runner with its snapshot,
 the `item` table allocating one number to an issue and the next to a page, HoneySQL over next.jdbc, the read pool
 plus locked write connection, and a stored revision number.
+
+## Inherited from [Choose the MCP implementation](T07-mcp-implementation.md)
+
+Serve the hand-rolled MCP handler to a real Claude Code client at 2026-07-28 and run the conformance suite
+(`0.2.0-alpha.12`) at both revisions against the skeleton.

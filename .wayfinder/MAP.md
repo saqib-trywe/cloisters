@@ -100,6 +100,9 @@ Decided for cloisters:
 - [Choose the persistence stack](tickets/T06-persistence-stack.md): SQLite stays (Datalevin and md files
   rejected); HoneySQL over next.jdbc, HikariCP reads plus one locked writer, hand-rolled `user_version` migrations,
   an `item` table enforcing the shared id space, stored revision numbers.
+- [Choose the MCP implementation](tickets/T07-mcp-implementation.md): hand-rolled JSON-RPC as a Ring handler at
+  `/mcp` ([ADR 0001](../docs/adr/0001-hand-rolled-mcp.md)); no Clojure library speaks 2026-07-28 yet; conformance
+  pinned at `0.2.0-alpha.12`.
 
 ## Not yet specified
 

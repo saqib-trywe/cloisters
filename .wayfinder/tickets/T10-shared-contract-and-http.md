@@ -37,3 +37,10 @@ number and an expected version.
 next.jdbc with HoneySQL over SQLite; rows come back as maps. Decide the core's map shape (namespaced keys such as
 `:issue/title`, or unqualified) and where it converts to the contract's JSON names. Writes are serialized behind one
 lock and return synchronously.
+
+## Inherited from [Choose the MCP implementation](T07-mcp-implementation.md)
+
+MCP is a hand-rolled Ring handler at `/mcp` ([ADR 0001](../../docs/adr/0001-hand-rolled-mcp.md)), so the HTTP server must
+host a plain Ring handler beside the API and UI routes. Choose the JSON library it shares with the HTTP API, and derive
+tool `inputSchema` and `outputSchema` from the shared contract (malli emits JSON Schema, per the survey). Drop nulls
+from `structuredContent`.
