@@ -2,7 +2,7 @@
 id: T10
 title: Define the shared contract and HTTP adapter
 type: grilling
-status: open
+status: closed
 assignee: saqib
 blocked-by: [T07, T08, T09]
 ---
@@ -58,3 +58,71 @@ The CLI is babashka with bundled libraries only: no shared `.cljc`, no malli. Th
 the daemon alone (core, HTTP, MCP, UI). The HTTP API must offer the **compact text rendering** MCP returns (a query
 parameter or `Accept: text/plain`, to decide) beside JSON, since the CLI prints the daemon's text rather than
 rendering its own. The CLI also sends the binding as a `Cloisters-Project` header (tikka's `Tikka-Project`).
+
+## Resolution
+
+Grilled with saqib, 2026-10-25, in two rounds; every recommendation accepted. Tikka's
+[Design the HTTP API shape](../../docs/inherited/tickets/T09-http-api-shape.md) carries: MCP and HTTP (and now the UI)
+as thin adapters over one core, REST for CRUD plus POST intent actions, the issue routes, the event feed and resumable
+SSE stream, the `{error, message, …facts}` body with three statuses (404, 400, 409) and clients switching on `error`,
+the paging envelope, no URL versioning, no CORS, localhost hardening. Its tapir definitions, SPA fallback and "JSON
+only" do not.
+
+### One contract, daemon only
+
+- **malli 0.20.3 schemas in a daemon-only contract namespace** (plain `.clj`; the CLI shares no code), one per
+  operation's arguments and result. They feed MCP `inputSchema` and `outputSchema` through `malli.json-schema` (regex
+  patterns stringified) and the core's own argument validation. Rejected clojure.spec (alpha, no JSON Schema).
+- **The core validates its arguments**, so MCP, HTTP, the UI and the REPL all get the same `invalid_argument` error.
+  Adapters only turn JSON into maps and back. Rejected per-adapter coercion (reitit's malli coercion beside MCP's), two
+  error formats, the trap tapir's decode-failure handler set for tikka. Malformed JSON still answers with the
+  `invalid_argument` body, never a plain-text error.
+- **Unqualified kebab-case maps in the core** (`:title`, `:expected-version`, kind as a `:kind` value), via next.jdbc's
+  `as-unqualified-kebab-maps`, converted to the contract's snake_case once at the JSON edge through jsonista's key
+  functions. Rejected namespaced keys, which split fields issues and pages share.
+
+### HTTP stack
+
+- **Ring 1.15.6 on Jetty 12** (`ring-jetty-adapter`), **reitit 0.11.0 for routing only**, **jsonista** for JSON in
+  the API and MCP. Rejected http-kit (beta line) and Pedestal (interceptors rather than plain Ring).
+- **SSE** is an async Ring handler streaming the event feed, resumable by `Last-Event-ID`, with a periodic comment
+  line as keep-alive. The walking skeleton proves it.
+- **No OpenAPI**: nothing consumes it.
+- **Routing order:** `/api/…`, `/mcp`, `/assets/…` (unknown assets 404), then the UI's server-rendered routes
+  including `/CLO-57`.
+- **Text by content negotiation:** `Accept: text/plain` returns the compact text rendering MCP's text block carries;
+  errors come back as text led by the code (`claim_conflict: …`) with the same status. JSON stays the default. Amends
+  tikka's "JSON only".
+- `/api/meta` reports the daemon version and data directory; the CLI sends `Cloisters-Project`.
+
+### Page routes
+
+| Operation | Route |
+|---|---|
+| get, optionally an old revision | `GET /api/pages/{id}?revision=3` |
+| create | `POST /api/pages` |
+| update: title, `body` or `body_edits`, parent, rank, summary, expected version | `PATCH /api/pages/{id}` |
+| archive / unarchive (summary required) | `POST /api/pages/{id}/archive` · `/unarchive` |
+| restore | `POST /api/pages/{id}/restore` `{revision, expected_version?, summary?}` |
+| revisions | `GET /api/pages/{id}/revisions` |
+| diff | `GET /api/pages/{id}/diff?from=&to=` |
+
+Moving is a `PATCH` of parent, as for issues. Page search and tree routes belong to
+[Extend the query grammar and search to pages](T12-query-grammar-for-pages.md).
+
+**No kind-agnostic route.** The CLI's `show` and `edit` try the issue route and follow `wrong_kind`, which names the
+kind: about 2 ms on a wrong guess, and the `item` table never leaks into the API.
+
+### Errors for pages
+
+Reuse where the meaning is the same; two new codes.
+
+| Case | Code | Status | Carries |
+|---|---|---|---|
+| id of the other kind | **`wrong_kind`** | 404 | the id and what it is |
+| archiving with live children | **`live_children`** | 409 | children as id and title |
+| moving beneath itself | `cycle` | 409 | the path |
+| parent in another project | `cross_project_edge` | 409 | both ids and projects |
+| unknown revision | `not_found` | 404 | id and revision |
+| missing archive summary | `invalid_argument` | 400 | |
+| stale save | `stale_version` | 409 | current version, title and body as touched |

@@ -18,3 +18,8 @@ record per page with its current state, plus its events (from which every revisi
 [Define page revisions and edit conflicts](T05-page-revisions-and-conflicts.md)), or each revision written out in full
 as well? In what order do issue and page records interleave, given they share one id sequence? Blocked on
 [Define the shared contract and HTTP adapter](T10-shared-contract-and-http.md), which fixes the page types.
+
+## Inherited from [Define the shared contract and HTTP adapter](T10-shared-contract-and-http.md)
+
+The contract's types are malli schemas over unqualified maps, written as snake_case JSON at the edge; page
+records are the `GET /api/pages/{id}` shape.

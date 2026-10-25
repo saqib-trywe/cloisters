@@ -38,3 +38,8 @@ pages share the issues' FTS table or have their own, which follows from one sear
 
 The UI's views are queries in the URL (`/?q=…`); decide the query that gives recent changes, so it is a link
 like any other view.
+
+## Inherited from [Define the shared contract and HTTP adapter](T10-shared-contract-and-http.md)
+
+Page routes exist for get, create, update, archive, unarchive, restore, revisions and diff under `/api/pages`;
+search and tree routes are yours, in the same REST shape and paging envelope.
