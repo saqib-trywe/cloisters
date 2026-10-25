@@ -106,6 +106,9 @@ Decided for cloisters:
 - [Choose the web UI approach](tickets/T08-web-ui-approach.md): server-rendered hiccup with htmx as a thin adapter
   over the core, no ClojureScript; nextjournal/markdown with our own safe renderer and java-diff-utils, both on the
   daemon only; one SSE stream; page routes and actions under `/CLO-57`.
+- [Choose the CLI approach](tickets/T09-cli-approach.md): babashka with bundled libraries only, installed by `bbin`;
+  the daemon renders the text it prints; shared `show`/`edit` plus `page` verbs; refused edits keep the file; 100 ms
+  gate.
 
 ## Not yet specified
 
