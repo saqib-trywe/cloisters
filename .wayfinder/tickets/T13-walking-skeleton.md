@@ -15,3 +15,8 @@ web UI over one core and store in the XDG locations, plus a separate thin CLI, r
 
 Like tikka's [walking skeleton](../../docs/inherited/tickets/T11-walking-skeleton.md), record what it corrects in the
 decisions it was built on.
+
+## Inherited from [Place cloisters' files in the XDG base directories](T03-xdg-file-locations.md)
+
+Run the skeleton under `CLOISTERS_HOME` (a temporary home, port 7228 or similar) so it never touches the real XDG
+locations or the live tikka on 7117.

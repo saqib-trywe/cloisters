@@ -14,3 +14,8 @@ in Clojure? `.cljc` namespaces with malli (or spec) schemas shared by daemon, CL
 JSON coercion, OpenAPI (if any) and MCP tool input schemas derived from one source? The REST shape is inherited from
 [Design the HTTP API shape](../../docs/inherited/tickets/T09-http-api-shape.md); this ticket also adds the page
 endpoints.
+
+## Inherited from [Place cloisters' files in the XDG base directories](T03-xdg-file-locations.md)
+
+`/api/meta` also reports the daemon's data directory, so the CLI can warn when it and the daemon resolve different
+stores.
