@@ -120,10 +120,13 @@ Decided for cloisters:
   and trees are queries.
 - [Extend export and durability to pages](tickets/T14-export-and-durability-for-pages.md): snapshots and restore
   cover pages unchanged; export adds `page` records, page events carry their revision; deterministic order.
+- [Walking skeleton: surfaces over one core, issues and pages](tickets/T13-walking-skeleton.md): the stack holds; one
+  core under HTTP, MCP and htmx UI, Claude Code at 2026-07-28, conformance clean at both revisions, CLI search 21 ms;
+  babashka must be user-wide, SSE opens with a comment, adapter catch-alls, a conformance failure baseline.
 
 ## Not yet specified
 
-- **The build plan.** Milestones ordering the build once every ticket is closed.
+Nothing: the last fog patch, the build plan, graduated into [Write the build plan](tickets/T15-build-plan.md).
 
 ## Out of scope
 

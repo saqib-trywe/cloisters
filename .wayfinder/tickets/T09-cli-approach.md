@@ -84,3 +84,10 @@ The inherited framing-only stdio proxy, in babashka from bundled pieces: newline
 POSTed to `/mcp?project=<binding from .cloisters>`, protocol headers passed through, each response written back as a
 line, a 202 writing nothing. Its daemon-down behaviour is inherited from
 [Daemon lifecycle and repo-to-project binding](../../docs/inherited/tickets/T10-daemon-lifecycle.md).
+
+> **Amended by [Walking skeleton: surfaces over one core, issues and pages](T13-walking-skeleton.md):** `cloisters
+> search` ran in 20.8 ms with babashka on `PATH` (32.9 ms through mise's shim), well inside the 100 ms gate.
+> **Babashka must be installed user-wide** (`mise use -g babashka` or Homebrew), not only pinned in a repo's
+> `mise.toml`: the installed script's `#!/usr/bin/env bb` finds no version outside that repo. **bbin copies a local
+> script**, so a CLI change takes a reinstall. The JDK HTTP client refuses a `Host` header, so the CLI sends
+> `Host: 127.0.0.1:<port>`, which the hardening accepts.
