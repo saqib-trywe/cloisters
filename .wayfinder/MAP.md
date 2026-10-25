@@ -45,6 +45,8 @@ calls `prototype`.
   Cloisters must be able to run beside a live tikka daemon (different port, different files).
 - Local markdown tracker in `.wayfinder/`; conventions in [README.md](README.md), frontier via `frontier.sh`.
 
+**Complete (2026-10-25).** Planning is done; the build follows [docs/build-plan.md](../docs/build-plan.md).
+
 ## Decisions so far
 
 <!-- one line per closed ticket: [title](link): gist -->
@@ -123,10 +125,14 @@ Decided for cloisters:
 - [Walking skeleton: surfaces over one core, issues and pages](tickets/T13-walking-skeleton.md): the stack holds; one
   core under HTTP, MCP and htmx UI, Claude Code at 2026-07-28, conformance clean at both revisions, CLI search 21 ms;
   babashka must be user-wide, SSE opens with a comment, adapter catch-alls, a conformance failure baseline.
+- [Write the build plan](tickets/T15-build-plan.md): [docs/build-plan.md](../docs/build-plan.md). M0 scaffold → M1
+  store → M2 core → M3 query → M4 HTTP and MCP → dogfood → M5 CLI → M6 UI, issues and pages together throughout;
+  start clean; dogfood in `.cloisters-dev/` on 7228 with the docs moved to pages and frozen in git.
 
 ## Not yet specified
 
-Nothing: the last fog patch, the build plan, graduated into [Write the build plan](tickets/T15-build-plan.md).
+Nothing. Every ticket is closed, and the way to the destination is clear: the build follows
+[docs/build-plan.md](../docs/build-plan.md).
 
 ## Out of scope
 
