@@ -88,6 +88,9 @@ Decided for cloisters:
 - [Amend scope and shape for the wiki](tickets/T02-amend-scope-for-the-wiki.md): pages add sibling rank, a reversible
   archive (never deletion) and a derived recent-changes view; no labels, comments, templates or attachments on pages;
   MCP parity with the UI for every page operation.
+- [Place cloisters' files in the XDG base directories](tickets/T03-xdg-file-locations.md): XDG on macOS and Linux,
+  store, snapshots and lock in data, logs in state; one `CLOISTERS_HOME` override; EDN config and `.cloisters`
+  binding; port 7227.
 
 ## Not yet specified
 
