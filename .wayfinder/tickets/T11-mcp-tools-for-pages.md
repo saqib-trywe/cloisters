@@ -3,7 +3,7 @@ id: T11
 title: Extend the MCP tool contract for pages
 type: grilling
 status: open
-assignee: null
+assignee: saqib
 blocked-by: [T04, T05]
 ---
 
