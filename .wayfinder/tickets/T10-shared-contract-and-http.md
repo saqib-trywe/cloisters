@@ -129,3 +129,7 @@ Reuse where the meaning is the same; two new codes.
 
 > **Amended by [Extend the MCP tool contract for pages](T11-mcp-tools-for-pages.md):** a new code, **`archived_parent`**
 > (409, the parent as id and title), refuses unarchiving, moving or creating a live page beneath an archived parent.
+
+> **Amended by [Extend the query grammar and search to pages](T12-query-grammar-for-pages.md):** search is one route,
+> `GET /api/search?q=`, over both kinds, replacing `GET /api/issues?q=`; the envelope is `{effective_query, results,
+> next_cursor, has_more}`. There is no tree route: a tree is a query.

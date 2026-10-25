@@ -115,6 +115,9 @@ Decided for cloisters:
 - [Extend the MCP tool contract for pages](tickets/T11-mcp-tools-for-pages.md): seven page tools (get, create,
   update, archive, unarchive, restore, diff), sixteen in all; a live page never has an archived parent
   (`archived_parent`); `get_page` returns the full body; mention lists carry kind.
+- [Extend the query grammar and search to pages](tickets/T12-query-grammar-for-pages.md): one `search` over both
+  kinds with a `kind:` filter implied by kind-only filters; `archived:no` by default; one FTS5 table; recent changes
+  and trees are queries.
 
 ## Not yet specified
 
