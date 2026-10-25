@@ -100,7 +100,6 @@ Decided for cloisters:
 
 ## Not yet specified
 
-- **Export, snapshots and restore covering pages.** Tikka's durability decision covers issues only.
 - **Mention and link detection without Laika.** The rules are inherited, now covering pages, with link paths
   `/KEY-N`; which Clojure markdown parser enforces them on both daemon and UI waits on the web UI choice.
 - **The build plan.** Milestones ordering the build once every ticket is closed.
