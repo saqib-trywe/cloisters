@@ -36,3 +36,11 @@ earn a tool under the invariant-or-race rule.
 
 The web UI can create a page (child or root), edit, move, reorder, archive and unarchive with a summary, and
 restore a revision; MCP parity requires each of these.
+
+## Inherited from [Define the shared contract and HTTP adapter](T10-shared-contract-and-http.md)
+
+The core's page operations are get (optionally a revision), create, update (title, `body` or `body_edits`, parent,
+rank, summary, expected version), archive, unarchive, restore, revisions and diff; decide which earn a tool. Schemas
+are malli, feeding `inputSchema` and `outputSchema`, and the core validates. New error codes: `wrong_kind` (the id
+and what it is) and `live_children`; `cycle`, `cross_project_edge`, `not_found`, `invalid_argument` and
+`stale_version` are reused.

@@ -109,6 +109,9 @@ Decided for cloisters:
 - [Choose the CLI approach](tickets/T09-cli-approach.md): babashka with bundled libraries only, installed by `bbin`;
   the daemon renders the text it prints; shared `show`/`edit` plus `page` verbs; refused edits keep the file; 100 ms
   gate.
+- [Define the shared contract and HTTP adapter](tickets/T10-shared-contract-and-http.md): malli contract on the
+  daemon only, validated by the core; Ring on Jetty with reitit routing and jsonista; `Accept: text/plain` for the CLI;
+  `/api/pages` routes; new codes `wrong_kind` and `live_children`.
 
 ## Not yet specified
 

@@ -47,3 +47,9 @@ issue linked, show its backlink, and edit it through the version-guarded editor.
 The CLI is a babashka script installed with `bbin`, using bundled libraries only: round-trip an issue and a page
 through it, printing the daemon's text rendering, and measure `cloisters search` with `hyperfine` against the 100 ms
 gate.
+
+## Inherited from [Define the shared contract and HTTP adapter](T10-shared-contract-and-http.md)
+
+Ring on Jetty 12, reitit for routing only, jsonista, malli contract validated by the core. Prove the async SSE
+handler resumes by `Last-Event-ID`, that `Accept: text/plain` returns MCP's text rendering, that malformed JSON gets
+the `invalid_argument` body, and that `wrong_kind` lets the CLI's `show` find a page.
