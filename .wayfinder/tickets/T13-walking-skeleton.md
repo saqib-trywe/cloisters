@@ -36,3 +36,8 @@ plus locked write connection, and a stored revision number.
 
 Serve the hand-rolled MCP handler to a real Claude Code client at 2026-07-28 and run the conformance suite
 (`0.2.0-alpha.12`) at both revisions against the skeleton.
+
+## Inherited from [Choose the web UI approach](T08-web-ui-approach.md)
+
+The UI is server-rendered hiccup with htmx: render one page through nextjournal/markdown with a mention of an
+issue linked, show its backlink, and edit it through the version-guarded editor.

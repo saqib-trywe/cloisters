@@ -44,3 +44,10 @@ MCP is a hand-rolled Ring handler at `/mcp` ([ADR 0001](../../docs/adr/0001-hand
 host a plain Ring handler beside the API and UI routes. Choose the JSON library it shares with the HTTP API, and derive
 tool `inputSchema` and `outputSchema` from the shared contract (malli emits JSON Schema, per the survey). Drop nulls
 from `structuredContent`.
+
+## Inherited from [Choose the web UI approach](T08-web-ui-approach.md)
+
+The web UI is server-rendered (hiccup 2, htmx 4) and is a third thin adapter calling the core directly, returning
+HTML fragments, beside the HTTP API and MCP. It listens to the API's SSE event stream, so the HTTP server must host a
+long-lived, resumable SSE response alongside plain Ring handlers. Static assets (CSS, vendored htmx) come from the
+classpath.

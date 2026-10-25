@@ -31,3 +31,8 @@ Revisions are numbered per page (r1, r2, …) and are a view over the page's eve
 (optional) and `body_edits`, as issues do, plus an edit summary, required to archive or unarchive. Restore takes a
 revision and makes a new one. Diff compares any two revisions of one page. Decide which of history, diff and restore
 earn a tool under the invariant-or-race rule.
+
+## Inherited from [Choose the web UI approach](T08-web-ui-approach.md)
+
+The web UI can create a page (child or root), edit, move, reorder, archive and unarchive with a summary, and
+restore a revision; MCP parity requires each of these.

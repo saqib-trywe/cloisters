@@ -103,11 +103,12 @@ Decided for cloisters:
 - [Choose the MCP implementation](tickets/T07-mcp-implementation.md): hand-rolled JSON-RPC as a Ring handler at
   `/mcp` ([ADR 0001](../docs/adr/0001-hand-rolled-mcp.md)); no Clojure library speaks 2026-07-28 yet; conformance
   pinned at `0.2.0-alpha.12`.
+- [Choose the web UI approach](tickets/T08-web-ui-approach.md): server-rendered hiccup with htmx as a thin adapter
+  over the core, no ClojureScript; nextjournal/markdown with our own safe renderer and java-diff-utils, both on the
+  daemon only; one SSE stream; page routes and actions under `/CLO-57`.
 
 ## Not yet specified
 
-- **Mention and link detection without Laika.** The rules are inherited, now covering pages, with link paths
-  `/KEY-N`; which Clojure markdown parser enforces them on both daemon and UI waits on the web UI choice.
 - **The build plan.** Milestones ordering the build once every ticket is closed.
 
 ## Out of scope
