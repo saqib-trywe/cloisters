@@ -28,3 +28,8 @@ title search can return several pages.
 
 A page's updated time is its latest event, which includes moves (on the old and new parent too) and archiving, not
 only edits: recent changes follows from that.
+
+## Inherited from [Choose the persistence stack](T06-persistence-stack.md)
+
+The query grammar compiles to HoneySQL. FTS5 trigram (`text:` as substring match) is inherited; decide whether
+pages share the issues' FTS table or have their own, which follows from one search or two.

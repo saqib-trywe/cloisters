@@ -97,6 +97,9 @@ Decided for cloisters:
 - [Define page revisions and edit conflicts](tickets/T05-page-revisions-and-conflicts.md): a revision is the page
   after a title or body event, numbered r1, r2, …; version is the revision number; the UI editor always guards and
   merges by hand; edit summaries, required to archive; restore makes a new revision.
+- [Choose the persistence stack](tickets/T06-persistence-stack.md): SQLite stays (Datalevin and md files
+  rejected); HoneySQL over next.jdbc, HikariCP reads plus one locked writer, hand-rolled `user_version` migrations,
+  an `item` table enforcing the shared id space, stored revision numbers.
 
 ## Not yet specified
 

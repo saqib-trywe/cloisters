@@ -25,3 +25,9 @@ locations or the live tikka on 7117.
 
 Round-trip a mention in each direction through the shared id space: a page mentioning an issue and an issue
 mentioning a page, each showing the backlink, both at `/CLO-N`.
+
+## Inherited from [Choose the persistence stack](T06-persistence-stack.md)
+
+Exercise the persistence stack end to end: the hand-rolled `user_version` migration runner with its snapshot,
+the `item` table allocating one number to an issue and the next to a page, HoneySQL over next.jdbc, the read pool
+plus locked write connection, and a stored revision number.

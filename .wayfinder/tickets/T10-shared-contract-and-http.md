@@ -31,3 +31,9 @@ map: archiving a page with live children (naming them), a move forming a cycle, 
 Page writes take an optional expected version (the latest revision number) and an edit summary, required to
 archive or unarchive. A stale page save returns the inherited `stale_version` details. Restore takes a revision
 number and an expected version.
+
+## Inherited from [Choose the persistence stack](T06-persistence-stack.md)
+
+next.jdbc with HoneySQL over SQLite; rows come back as maps. Decide the core's map shape (namespaced keys such as
+`:issue/title`, or unqualified) and where it converts to the contract's JSON names. Writes are serialized behind one
+lock and return synchronously.
