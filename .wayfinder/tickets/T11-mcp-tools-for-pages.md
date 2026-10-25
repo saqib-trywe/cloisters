@@ -91,3 +91,6 @@ creating a page beneath one are refused with `archived_parent`** (409), carrying
 
 Archiving an archived page and unarchiving a live one succeed with no change; restoring content identical to the
 current is a no-op. `create_page` is not idempotent, and its description says to search before retrying.
+
+> **Amended by [Extend the query grammar and search to pages](T12-query-grammar-for-pages.md):** `search_issues`
+> becomes `search`, over issues and pages, with mixed rows carrying their kind. Sixteen tools.

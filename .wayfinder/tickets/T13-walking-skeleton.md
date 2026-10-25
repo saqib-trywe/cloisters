@@ -58,3 +58,8 @@ the `invalid_argument` body, and that `wrong_kind` lets the CLI's `show` find a 
 
 Call `create_page`, `get_page` and `update_page` from Claude Code over MCP, and see an issue's `get_issue`
 list the page among its backlinks with kind `page`.
+
+## Inherited from [Extend the query grammar and search to pages](T12-query-grammar-for-pages.md)
+
+Run one `search` over MCP and `GET /api/search` that returns the skeleton's issue and page as mixed rows, and a
+`text:` match in the shared FTS5 trigram table.
