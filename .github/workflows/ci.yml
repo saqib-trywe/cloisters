@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v5
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+          key: deps-${{ runner.os }}-${{ hashFiles('deps.edn') }}
+      - name: Node tooling (pinned MCP conformance suite; its scenarios first run in M4)
+        run: npm ci && npx conformance --version
+      - name: Lint
+        run: clojure -M:lint
+      - name: Format
+        run: clojure -M:fmt check
+      - name: Test
+        run: clojure -M:test
+      - name: Daemon uberjar
+        run: clojure -T:build uber
+      - name: CLI loads (no commands yet, so usage exits 2)
+        run: |
+          status=0
+          bb cli/cloisters.clj || status=$?
+          test "$status" -eq 2

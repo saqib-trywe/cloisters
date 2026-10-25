@@ -1,0 +1,5 @@
+[tools]
+java = "zulu-27.30.107.0"
+clojure = "1.12.6.1673"
+babashka = "1.13.227"
+node = "26.12.1"
