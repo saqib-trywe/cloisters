@@ -33,3 +33,8 @@ only edits: recent changes follows from that.
 
 The query grammar compiles to HoneySQL. FTS5 trigram (`text:` as substring match) is inherited; decide whether
 pages share the issues' FTS table or have their own, which follows from one search or two.
+
+## Inherited from [Choose the web UI approach](T08-web-ui-approach.md)
+
+The UI's views are queries in the URL (`/?q=…`); decide the query that gives recent changes, so it is a link
+like any other view.
