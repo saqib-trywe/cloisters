@@ -66,7 +66,7 @@ Run one `search` over MCP and `GET /api/search` that returns the skeleton's issu
 
 ## Resolution
 
-Built 2026-10-25 on the local branch `prototype/walking-skeleton` (directory `skeleton/`, commit `3a6b4c0`, never
+Built 2026-10-25 on branch [`prototype/walking-skeleton`](https://github.com/saqib-trywe/cloisters/tree/prototype/walking-skeleton) (directory `skeleton/`, commit `3a6b4c0`, never
 merged). That branch is the primary source; its README says how to run it. Scope, agreed with saqib before building:
 project `CLO` only; issues with title and body; pages with title, body and parent; mention detection and backlinks in
 both directions; events with stored revisions; the `stale_version` guard on page edits; `wrong_kind`; search over

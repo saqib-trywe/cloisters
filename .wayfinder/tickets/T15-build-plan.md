@@ -25,7 +25,7 @@ query grammar, then HTTP and MCP, then a dogfood point, then CLI, then web UI. D
 
 ## Inherited from [Walking skeleton: surfaces over one core, issues and pages](T13-walking-skeleton.md)
 
-The stack held with nothing re-decided; the primary source is the local `prototype/walking-skeleton` branch. Fold in
+The stack held with nothing re-decided; the primary source is the [`prototype/walking-skeleton`](https://github.com/saqib-trywe/cloisters/tree/prototype/walking-skeleton) branch. Fold in
 its build conventions: babashka installed user-wide, with a `mise.toml` pinning the repo's tools; bbin reinstall
 after CLI changes; the SSE opening comment; adapter catch-alls; one jsonista mapper for both JSON edges; `mu/merge`
 and single-`:re` schemas; `[:lift x]` in HoneySQL raw fragments; htmx `4.0.0` vendored deliberately; the jsdom shims
