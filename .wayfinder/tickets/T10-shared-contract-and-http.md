@@ -3,7 +3,7 @@ id: T10
 title: Define the shared contract and HTTP adapter
 type: grilling
 status: open
-assignee: null
+assignee: saqib
 blocked-by: [T07, T08, T09]
 ---
 
