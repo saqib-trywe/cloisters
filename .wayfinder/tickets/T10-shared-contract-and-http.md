@@ -51,3 +51,10 @@ The web UI is server-rendered (hiccup 2, htmx 4) and is a third thin adapter cal
 HTML fragments, beside the HTTP API and MCP. It listens to the API's SSE event stream, so the HTTP server must host a
 long-lived, resumable SSE response alongside plain Ring handlers. Static assets (CSS, vendored htmx) come from the
 classpath.
+
+## Inherited from [Choose the CLI approach](T09-cli-approach.md)
+
+The CLI is babashka with bundled libraries only: no shared `.cljc`, no malli. The shared contract therefore spans
+the daemon alone (core, HTTP, MCP, UI). The HTTP API must offer the **compact text rendering** MCP returns (a query
+parameter or `Accept: text/plain`, to decide) beside JSON, since the CLI prints the daemon's text rather than
+rendering its own. The CLI also sends the binding as a `Cloisters-Project` header (tikka's `Tikka-Project`).

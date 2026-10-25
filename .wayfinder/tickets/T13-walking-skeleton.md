@@ -41,3 +41,9 @@ Serve the hand-rolled MCP handler to a real Claude Code client at 2026-07-28 and
 
 The UI is server-rendered hiccup with htmx: render one page through nextjournal/markdown with a mention of an
 issue linked, show its backlink, and edit it through the version-guarded editor.
+
+## Inherited from [Choose the CLI approach](T09-cli-approach.md)
+
+The CLI is a babashka script installed with `bbin`, using bundled libraries only: round-trip an issue and a page
+through it, printing the daemon's text rendering, and measure `cloisters search` with `hyperfine` against the 100 ms
+gate.
