@@ -3,7 +3,7 @@ id: T07
 title: Choose the MCP implementation
 type: grilling
 status: open
-assignee: null
+assignee: saqib
 blocked-by: [T01]
 ---
 
