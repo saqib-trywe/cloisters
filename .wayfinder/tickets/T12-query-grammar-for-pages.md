@@ -23,3 +23,8 @@ filters apply to them.
 
 Pages share the issues' ids, so `mentions:CLO-57` and backlinks may name either kind. Titles are not unique, so a
 title search can return several pages.
+
+## Inherited from [Define page revisions and edit conflicts](T05-page-revisions-and-conflicts.md)
+
+A page's updated time is its latest event, which includes moves (on the old and new parent too) and archiving, not
+only edits: recent changes follows from that.

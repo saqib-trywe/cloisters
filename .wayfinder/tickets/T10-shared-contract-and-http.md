@@ -25,3 +25,9 @@ stores.
 Issues and pages share one id space (`CLO-57`), and the web UI serves both at `/CLO-57`. A request for a page
 as an issue, or the reverse, is refused naming what the id is: decide its error code and status. New refusals to
 map: archiving a page with live children (naming them), a move forming a cycle, a move between projects.
+
+## Inherited from [Define page revisions and edit conflicts](T05-page-revisions-and-conflicts.md)
+
+Page writes take an optional expected version (the latest revision number) and an edit summary, required to
+archive or unarchive. A stale page save returns the inherited `stale_version` details. Restore takes a revision
+number and an expected version.

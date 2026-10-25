@@ -25,3 +25,10 @@ The page editor is a text area plus preview, pages only; no WYSIWYG, no upload c
 Every issue and page lives at `/CLO-57`; the UI routes by what the id names. Decide how a bare page id renders
 (id with a title on hover as issues get, or the title inline). Links to archived pages render muted and marked
 "archived".
+
+## Inherited from [Define page revisions and edit conflicts](T05-page-revisions-and-conflicts.md)
+
+The page editor always sends the version it loaded. On a stale save it keeps the human's text, shows a diff of what
+changed underneath, and lets the human merge by hand and resave. History lists revisions (r1, r2, …) with edit
+summaries; the diff view compares any two, defaulting to the previous, using the shared line-diff implementation.
+Archiving and unarchiving ask for an edit summary.
