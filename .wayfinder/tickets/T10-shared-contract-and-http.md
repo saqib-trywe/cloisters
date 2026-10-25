@@ -19,3 +19,9 @@ endpoints.
 
 `/api/meta` also reports the daemon's data directory, so the CLI can warn when it and the daemon resolve different
 stores.
+
+## Inherited from [Define page identity and linking](T04-page-identity-and-linking.md)
+
+Issues and pages share one id space (`CLO-57`), and the web UI serves both at `/CLO-57`. A request for a page
+as an issue, or the reverse, is refused naming what the id is: decide its error code and status. New refusals to
+map: archiving a page with live children (naming them), a move forming a cycle, a move between projects.

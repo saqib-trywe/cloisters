@@ -20,3 +20,8 @@ decisions it was built on.
 
 Run the skeleton under `CLOISTERS_HOME` (a temporary home, port 7228 or similar) so it never touches the real XDG
 locations or the live tikka on 7117.
+
+## Inherited from [Define page identity and linking](T04-page-identity-and-linking.md)
+
+Round-trip a mention in each direction through the shared id space: a page mentioning an issue and an issue
+mentioning a page, each showing the backlink, both at `/CLO-N`.

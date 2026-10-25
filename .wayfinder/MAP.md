@@ -91,14 +91,17 @@ Decided for cloisters:
 - [Place cloisters' files in the XDG base directories](tickets/T03-xdg-file-locations.md): XDG on macOS and Linux,
   store, snapshots and lock in data, logs in state; one `CLOISTERS_HOME` override; EDN config and `.cloisters`
   binding; port 7227.
+- [Define page identity and linking](tickets/T04-page-identity-and-linking.md): pages share the project's id sequence
+  (`CLO-57`) and URL shape (`/CLO-57`); page links are just mentions; titles not unique; moves keep rank, never
+  cross projects; archiving refuses while live children exist.
 
 ## Not yet specified
 
 - **The event log for pages.** How page saves, moves and renames show up on timelines and in the global sequence,
   and how events relate to revisions. Waits on page identity and revisions.
 - **Export, snapshots and restore covering pages.** Tikka's durability decision covers issues only.
-- **Mention and link detection without Laika.** The rules are inherited; which Clojure markdown parser enforces
-  them on both daemon and UI waits on the survey and the web UI choice.
+- **Mention and link detection without Laika.** The rules are inherited, now covering pages, with link paths
+  `/KEY-N`; which Clojure markdown parser enforces them on both daemon and UI waits on the web UI choice.
 - **The build plan.** Milestones ordering the build once every ticket is closed.
 
 ## Out of scope
