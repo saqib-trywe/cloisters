@@ -1,0 +1,10 @@
+/* PROTOTYPE */
+body { font: 16px/1.5 system-ui, sans-serif; max-width: 70rem; margin: 1rem auto; padding: 0 1rem; }
+nav { border-bottom: 1px solid #ddd; margin-bottom: 1rem; }
+.proto { background: #fd3; padding: 0 .3rem; font-size: .8rem; }
+.meta, .kind { color: #666; }
+a.archived { color: #999; }
+.split { display: flex; gap: 1rem; }
+.split > * { flex: 1; }
+.stale, .banner { background: #fee; padding: .5rem; }
+pre { background: #f6f6f6; padding: .5rem; overflow: auto; }
