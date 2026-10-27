@@ -1,1 +1,1 @@
-{}
+{:lint-as {cloisters.store-test/with-store clojure.core/with-open}}

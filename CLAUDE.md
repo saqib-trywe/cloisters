@@ -42,6 +42,8 @@ of them before pushing.
   Clojars metadata and release notes, not docs pages.
 - Write malli schemas with `mu/merge`, not `:merge`. Write titles as a single `:re`, not
   `[:and :string [:re …]]`.
+- Migrations are numbered `.sql` files in `resources/migrations/`, listed in `cloisters.store/migration-files`. They
+  are append-only: never edit a merged one; add the next number.
 - In HoneySQL raw fragments, bind parameters with `[:lift x]`; `RETURNING` allocates ids.
 - Write `java.lang.ProcessHandle` and other newer `java.lang` classes fully qualified: Clojure 1.12 does not
   auto-import them.

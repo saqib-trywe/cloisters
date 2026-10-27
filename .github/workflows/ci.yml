@@ -27,7 +27,7 @@ jobs:
         run: clojure -M:lint
       - name: Format
         run: clojure -M:fmt check
-      - name: Test
+      - name: Test (against real temporary SQLite files, including migrating a non-empty store)
         run: clojure -M:test
       - name: Daemon uberjar
         run: clojure -T:build uber
