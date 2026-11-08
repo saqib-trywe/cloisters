@@ -54,7 +54,8 @@ of them before pushing.
 ## Working rules
 
 - Branch `build/mN-<name>` from `main` (never from another milestone branch) and merge by squash PR once CI is
-  green. The repository has no ruleset, so no `--admin`.
+  green: `gh pr merge <n> --squash --admin --delete-branch`. The ProtectMainCloisters ruleset requires a review that a
+  solo author cannot give, so merges use the admin bypass, and only after CI passes on both platforms.
 - A milestone is done when its checks pass, not when its code is written.
 - Stage explicit paths. Never commit `target/`, `.cpcache/`, `node_modules/` or `.cloisters-dev/`.
 - The walking skeleton (branch `prototype/walking-skeleton`, directory `skeleton/`) is reference only. Copy from it
