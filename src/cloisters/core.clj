@@ -98,8 +98,18 @@
 
 (def ^:private stamp (.withZone (DateTimeFormatter/ofPattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") ZoneOffset/UTC))
 
+(defn instant
+  "The current instant, from the context's :clock when it has one."
+  ^Instant [ctx]
+  ((or (:clock ctx) #(Instant/now))))
+
+(defn timestamp
+  "An instant as the store writes times: ISO-8601 UTC with milliseconds, so times compare as text."
+  [^Instant t]
+  (.format stamp t))
+
 (defn- now [ctx]
-  (.format stamp ^Instant ((or (:clock ctx) #(Instant/now)))))
+  (timestamp (instant ctx)))
 
 (defn with-read
   "Runs (f conn) in one read transaction on the read pool, so several queries see one moment of the store."

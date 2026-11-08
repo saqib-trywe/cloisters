@@ -34,10 +34,11 @@ of them before pushing.
 ## Clojure conventions
 
 - Mainstream, idiomatic Clojure: learning the stack is part of the point.
-- Operations live in `cloisters.issues`, `cloisters.pages`, `cloisters.projects` and `cloisters.events`, and take the
-  context map described in `cloisters.core`. Each validates its arguments with `contract/validate!`, refuses with
-  `core/fail` (the contract's error code plus the facts the reader needs), writes through `core/write!`, and records
-  at most one event through `core/record!`.
+- Operations live in `cloisters.issues`, `cloisters.pages`, `cloisters.projects`, `cloisters.events` and
+  `cloisters.search`, and take the context map described in `cloisters.core`. Each validates its arguments with
+  `contract/validate!`, refuses with `core/fail` (the contract's error code plus the facts the reader needs), writes
+  through `core/write!`, and records at most one event through `core/record!`. The query grammar itself is
+  `cloisters.query`, which knows nothing of the store.
 - The core validates; adapters stay thin and duplicate nothing. The CLI shares no code with the daemon: it sends
   requests and prints the daemon's own text rendering.
 - The CLI uses only what babashka bundles (`babashka.http-client`, cheshire, `babashka.cli`, `babashka.fs`,

@@ -95,6 +95,11 @@
    :events
    {:args (args [:after {:optional true} [:int {:min 0}]] [:limit {:optional true} Limit])}
 
+   :search
+   {:args (args [:query {:optional true :description "the shared query grammar, e.g. `ready parent:CLO-1`"} :string]
+                [:cursor {:optional true :description "next_cursor from the previous page, unchanged"} :string]
+                [:limit {:optional true :description "default 50"} Limit])}
+
    :create-page
    {:args (apply args
                  [:title Line]
