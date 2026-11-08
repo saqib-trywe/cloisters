@@ -21,7 +21,7 @@ jobs:
             ~/.m2/repository
             ~/.gitlibs
           key: deps-${{ runner.os }}-${{ hashFiles('deps.edn') }}
-      - name: Node tooling (pinned MCP conformance suite; its scenarios first run in M4)
+      - name: Node tooling (the pinned MCP conformance suite)
         run: npm ci && npx conformance --version
       - name: Lint
         run: clojure -M:lint
@@ -31,6 +31,8 @@ jobs:
         run: clojure -M:test
       - name: Daemon uberjar
         run: clojure -T:build uber
+      - name: MCP conformance at 2025-11-25 and 2026-07-28, against the expected-failures baselines
+        run: scripts/conformance.sh
       - name: CLI loads (no commands yet, so usage exits 2)
         run: |
           status=0

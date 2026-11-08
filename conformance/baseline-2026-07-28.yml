@@ -1,0 +1,56 @@
+# Expected conformance failures at 2026-07-28, for `conformance server --requirements 2026-07-28`.
+#
+# Each entry is a scenario cloisters cannot pass by design: the suite's own fixture tools (test_*, greet,
+# slow_compute, ...), or resources, prompts, completion, logging, sampling, elicitation, tasks and
+# input-required results, none of which cloisters offers (tools only; ADR 0001). server-stateless and caching
+# are listed check by check, so their applicable checks stay enforced. Warnings count as failures here too. A
+# passing entry fails the run as stale: remove it.
+server:
+  - completion-complete
+  - http-custom-header-server-validation
+  - input-required-result-basic-elicitation
+  - input-required-result-basic-list-roots
+  - input-required-result-basic-sampling
+  - input-required-result-capability-check
+  - input-required-result-ignore-extra-params
+  - input-required-result-missing-input-response
+  - input-required-result-multi-round
+  - input-required-result-multiple-input-requests
+  - input-required-result-non-tool-request
+  - input-required-result-request-state
+  - input-required-result-result-type
+  - input-required-result-tampered-state
+  - json-schema-2020-12
+  - prompts-get-embedded-resource
+  - prompts-get-simple
+  - prompts-get-with-args
+  - prompts-get-with-image
+  - prompts-list
+  - resources-list
+  - resources-read-binary
+  - resources-read-text
+  - resources-templates-read
+  - sep-2164-resource-not-found
+  - tasks-capability-negotiation
+  - tasks-dispatch-and-envelope
+  - tasks-lifecycle
+  - tasks-mrtr-composition
+  - tasks-mrtr-input
+  - tasks-request-headers
+  - tasks-request-state-removal
+  - tasks-required-task-error
+  - tasks-wire-fields
+  - tools-call-audio
+  - tools-call-embedded-resource
+  - tools-call-error
+  - tools-call-image
+  - tools-call-mixed-content
+  - tools-call-simple-text
+  - tools-call-with-progress
+  - caching:sep-2549-prompts-list-caching-hints
+  - caching:sep-2549-resources-list-caching-hints
+  - caching:sep-2549-resources-templates-list-caching-hints
+  - server-stateless:sep-2575-http-server-no-independent-requests-on-stream
+  - server-stateless:sep-2575-missing-capability-http-400
+  - server-stateless:sep-2575-server-no-log-without-loglevel
+  - server-stateless:sep-2575-server-rejects-undeclared-capability

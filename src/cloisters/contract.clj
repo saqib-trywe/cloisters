@@ -1,10 +1,15 @@
 (ns cloisters.contract
-  "The daemon's contract: one malli schema per operation's arguments. The core validates every call against these, so
-  MCP, HTTP, the UI and the REPL all meet the same invalid_argument refusal. Keys are kebab-case here and snake_case
-  on the wire."
+  "The daemon's contract: one malli schema per operation's arguments and, for what MCP serves, its result. The core
+  validates every call against the argument schemas, so MCP, HTTP, the UI and the REPL all meet the same
+  invalid_argument refusal, and MCP derives each tool's inputSchema and outputSchema from the same schemas. Keys are
+  kebab-case here and snake_case on the wire."
   (:require [clojure.string :as str]
+            [clojure.walk :as walk]
             [malli.core :as m]
-            [malli.error :as me]))
+            [malli.error :as me]
+            [malli.json-schema :as json-schema]
+            [malli.util :as mu])
+  (:import (java.util.regex Pattern)))
 
 (def Key [:re {:description "a project key, e.g. CLO"} #"^[A-Z][A-Z0-9]{1,9}$"])
 (def Id [:re {:description "an issue or page id, e.g. CLO-7"} #"^[A-Z][A-Z0-9]{1,9}-[1-9][0-9]{0,17}$"])
@@ -13,6 +18,145 @@
 (def Version [:int {:min 1}])
 (def Rank [:double {:description "any decimal number; siblings sort by rank, then number"}])
 (def Limit [:int {:min 1 :max 200}])
+
+(def Time [:string {:description "ISO-8601 UTC, e.g. 2026-10-27T10:00:00.000Z"}])
+
+;; ---------------------------------------------------------------- results
+
+(def Ref
+  [:map {:description "an item an edge or mention names: an issue shows its status, a page whether it is archived"}
+   [:id Id]
+   [:kind [:enum "issue" "page"]]
+   [:title :string]
+   [:status {:optional true :description "issues only"} [:enum "open" "closed"]]
+   [:archived {:optional true :description "pages only"} :boolean]])
+
+(def Brief [:map [:id Id] [:title :string]])
+
+(def IssueRow
+  [:map {:description "an issue as a list shows it, never its body"}
+   [:id Id]
+   [:kind [:enum "issue"]]
+   [:title :string]
+   [:status [:enum "open" "closed"]]
+   [:resolution {:optional true} [:enum "done" "dropped"]]
+   [:assignee {:optional true} :string]
+   [:labels [:vector :string]]
+   [:parent {:optional true} Id]
+   [:blocked :boolean]
+   [:rank :double]
+   [:updated Time]])
+
+(def PageRow
+  [:map {:description "a page as a list shows it, never its body"}
+   [:id Id]
+   [:kind [:enum "page"]]
+   [:title :string]
+   [:parent {:optional true} Id]
+   [:archived :boolean]
+   [:rank :double]
+   [:updated Time]
+   [:revision Version]])
+
+(def Change
+  [:map
+   [:field :string]
+   [:op [:enum "set" "add" "remove"]]
+   [:old {:optional true} :string]
+   [:new {:optional true} :string]
+   [:diff {:optional true :description "a body change, as a unified line diff"} :string]])
+
+(def Event
+  [:map
+   [:seq [:int {:min 1}]]
+   [:id Id]
+   [:kind [:enum "issue" "page"]]
+   [:at Time]
+   [:actor :string]
+   [:comment {:optional true} :string]
+   [:summary {:optional true} :string]
+   [:revision {:optional true} Version]
+   [:restored-from {:optional true} Version]
+   [:changes [:vector Change]]
+   [:related [:vector Id]]])
+
+(def Revision
+  [:map
+   [:revision Version]
+   [:at Time]
+   [:actor :string]
+   [:summary {:optional true} :string]
+   [:restored-from {:optional true} Version]])
+
+(def ^:private IssueWrite (mu/merge IssueRow [:map [:version Version]]))
+(def ^:private PageWrite (mu/merge PageRow [:map [:version Version]]))
+
+(def results
+  "Each MCP tool's result schema, by operation."
+  {:search
+   [:map
+    [:effective-query {:description "the query as run, with the bound project and any implied kind"} :string]
+    [:results [:vector [:or IssueRow PageRow]]]
+    [:next-cursor {:optional true :description "pass back as cursor for the next page"} :string]
+    [:has-more :boolean]]
+
+   :get-issue
+   (mu/merge IssueRow
+             [:map
+              [:body :string]
+              [:version Version]
+              [:created Time]
+              [:closed {:optional true} Time]
+              [:claimed {:optional true} Time]
+              [:parent {:optional true} Ref]
+              [:children [:vector Ref]]
+              [:blocked-by [:vector Ref]]
+              [:blocking [:vector Ref]]
+              [:comments [:vector [:map [:seq [:int {:min 1}]] [:at Time] [:actor :string] [:comment :string]]]]
+              [:mentions [:vector Ref]]
+              [:backlinks [:vector Ref]]
+              [:events {:optional true :description "the latest 50, oldest first"} [:vector Event]]
+              [:events-total {:optional true} [:int {:min 0}]]
+              [:events-truncated {:optional true} :boolean]])
+
+   :create-issue IssueWrite
+   :update-issue IssueWrite
+   :claim-issue (mu/merge IssueWrite [:map [:claimed-at Time]])
+   :release-issue IssueWrite
+   :reassign-issue IssueWrite
+   :close-issue (mu/merge IssueWrite [:map [:newly-unblocked [:vector IssueRow]]])
+   :reopen-issue IssueWrite
+
+   :get-page
+   (mu/merge PageRow
+             [:map
+              [:body :string]
+              [:version Version]
+              [:created Time]
+              [:parent {:optional true} Ref]
+              [:children [:vector PageRow]]
+              [:mentions [:vector Ref]]
+              [:backlinks [:vector Ref]]
+              [:revisions {:optional true :description "the newest 50, oldest first"} [:vector Revision]]
+              [:revisions-total {:optional true} [:int {:min 0}]]
+              [:revisions-truncated {:optional true} :boolean]])
+
+   :create-page PageWrite
+   :update-page PageWrite
+   :archive-page PageWrite
+   :unarchive-page PageWrite
+   :restore-page PageWrite
+
+   :diff-page
+   [:map
+    [:id Id]
+    [:from [:int {:min 0 :description "0 is before the page existed"}]]
+    [:to Version]
+    [:title-before {:optional true} :string]
+    [:title-after :string]
+    [:diff {:description "a unified line diff of the body; empty when the bodies match"} :string]]})
+
+;; ---------------------------------------------------------------- arguments
 
 (def ^:private comment-arg
   [:comment {:optional true :description "a comment appended in the same write"} Text])
@@ -175,3 +319,30 @@
           (invalid (wire-name (second given))
                    (str "give at most one of " (str/join ", " (map wire-name group)))))))
     args))
+
+;; ---------------------------------------------------------------- JSON Schema
+
+(defn- entry-descriptions
+  "schema with each map entry's own description moved onto its value, where JSON Schema shows it on the property."
+  [schema]
+  (m/walk schema
+          (m/schema-walker
+           (fn [s]
+             (if (= :map (m/type s))
+               (m/into-schema :map (m/properties s)
+                              (for [[k p v] (m/children s)]
+                                [k p (if-let [d (:description p)] (mu/update-properties v assoc :description d) v)])
+                              (m/options s))
+               s)))))
+
+(defn json-schema
+  "schema as JSON Schema, ready for the JSON mapper: regex patterns as strings, required names in snake_case. The
+  top level carries no description; a tool's own description says what it returns."
+  [schema]
+  (walk/postwalk
+   (fn [x]
+     (cond
+       (instance? Pattern x) (str x)
+       (and (map? x) (:required x)) (update x :required #(mapv wire-name %))
+       :else x))
+   (dissoc (json-schema/transform (entry-descriptions schema)) :description)))

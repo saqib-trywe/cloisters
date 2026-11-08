@@ -23,6 +23,7 @@
 
 (deftest a-second-daemon-is-refused
   (let [home (fx/tmp-dir)
+        _ (fx/configure! home (fx/free-port))
         f (lock-file home)
         held (lock/acquire! f {:port 7299 :version "first"})
         pid (.pid (java.lang.ProcessHandle/current))]
@@ -41,6 +42,7 @@
   (let [home (fx/tmp-dir)
         f (lock-file home)
         snapshot (io/file home "data" "backups" (str "daily-" (java.time.LocalDate/now) ".db"))
+        port (fx/configure! home (fx/free-port))
         p (start-daemon home)]
     (future (slurp (.getErrorStream p)))
     (try
@@ -51,7 +53,7 @@
       (testing "the running daemon has taken its startup snapshot"
         (is (.exists snapshot)))
       (testing "the running daemon records its pid, port and version"
-        (is (= {:pid (.pid p) :port 7227 :version "0.1.0-SNAPSHOT"} (lock/holder f))))
+        (is (= {:pid (.pid p) :port port :version "0.1.0-SNAPSHOT"} (lock/holder f))))
       (testing "a stop releases the lock and checkpoints the WAL"
         (.destroy p)
         (is (.waitFor p 30 TimeUnit/SECONDS))

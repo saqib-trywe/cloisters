@@ -202,7 +202,7 @@
 
 (defn get-issue
   "Everything about an issue: its fields and body, its edges as refs, its mentions and backlinks, and its comments;
-  with include [\"events\"], the latest 50 events too."
+  with include [\"events\"], the latest 50 events too, body changes as diffs."
   [ctx args]
   (let [{:keys [id include]} (contract/validate! :get-issue args)]
     (core/with-read
@@ -223,7 +223,7 @@
                  (core/mention-lists conn ref)
                  (when (some #{"events"} include)
                    (let [{:keys [events total truncated]} (events/latest conn ref events/default-limit)]
-                     {:events events :events-total total :events-truncated truncated}))))))))
+                     {:events (mapv events/compact events) :events-total total :events-truncated truncated}))))))))
 
 (defn- label-changes
   "The label adds and removes a write makes, removes first, each case-insensitive against the current labels."

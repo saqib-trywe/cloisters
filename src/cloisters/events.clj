@@ -1,7 +1,8 @@
 (ns cloisters.events
   "Reading the event log: an item's timeline, the cross-item feed, and the event shape every surface shares."
   (:require [cloisters.contract :as contract]
-            [cloisters.core :as core :refer [q]]))
+            [cloisters.core :as core :refer [q]]
+            [cloisters.diff :as diff]))
 
 (def default-limit 50)
 
@@ -39,6 +40,21 @@
     {:events (load-events conn (timeline-where ref) :limit n :desc true)
      :total total
      :truncated (> total n)}))
+
+(defn compact
+  "An event as an agent reads it: a body change as a unified diff rather than both full texts. The full texts stay
+  in the HTTP history and the feed."
+  [event]
+  (update event :changes
+          (partial mapv (fn [{:keys [field op old new] :as c}]
+                          (if (= "body" field)
+                            {:field field :op op :diff (diff/unified old new "before" "after")}
+                            c)))))
+
+(defn latest-seq
+  "The newest event's sequence number, or 0 before any write."
+  [ctx]
+  (core/with-read ctx #(or (:n (core/q1 % {:select [[[:max :seq] :n]] :from :event})) 0)))
 
 (defn- page-of [conn where {:keys [after limit]}]
   (let [limit (or limit default-limit)
