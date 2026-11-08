@@ -42,6 +42,8 @@ of them before pushing.
   Clojars metadata and release notes, not docs pages.
 - Write malli schemas with `mu/merge`, not `:merge`. Write titles as a single `:re`, not
   `[:and :string [:re …]]`.
+- Migrations are numbered `.sql` files in `resources/migrations/`, listed in `cloisters.store/migration-files`. They
+  are append-only: never edit a merged one; add the next number.
 - In HoneySQL raw fragments, bind parameters with `[:lift x]`; `RETURNING` allocates ids.
 - Write `java.lang.ProcessHandle` and other newer `java.lang` classes fully qualified: Clojure 1.12 does not
   auto-import them.
@@ -52,7 +54,8 @@ of them before pushing.
 ## Working rules
 
 - Branch `build/mN-<name>` from `main` (never from another milestone branch) and merge by squash PR once CI is
-  green. The repository has no ruleset, so no `--admin`.
+  green: `gh pr merge <n> --squash --admin --delete-branch`. The ProtectMainCloisters ruleset requires a review that a
+  solo author cannot give, so merges use the admin bypass, and only after CI passes on both platforms.
 - A milestone is done when its checks pass, not when its code is written.
 - Stage explicit paths. Never commit `target/`, `.cpcache/`, `node_modules/` or `.cloisters-dev/`.
 - The walking skeleton (branch `prototype/walking-skeleton`, directory `skeleton/`) is reference only. Copy from it
@@ -70,5 +73,5 @@ of them before pushing.
 - Babashka must be installed user-wide (`mise use -g babashka`), not only through this repo's `mise.toml`: the
   installed CLI's `#!/usr/bin/env bb` finds no version outside the repo. `bbin` copies the script, so reinstall after
   every CLI change.
-- gh: the active account is `saqibsaleem-mands`; `gh auth switch -u saqib-trywe` for this repository and switch back
-  after. Git pushes go over SSH.
+- gh: use only the `saqib-trywe` account for this repository. If another account is active, run
+  `gh auth switch -u saqib-trywe` and leave it there. Git pushes go over SSH.

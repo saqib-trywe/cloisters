@@ -19,7 +19,8 @@ a later "pages milestone" a second pass through every layer.
   (4.0.0), the jsdom shims in `scripts/ui-test.js`, `paths.clj`, and the lock and migration runner.
 - **Branches.** One branch per milestone (`build/m0-scaffold`, `build/m1-store`, …), always branched from `main`,
   never stacked on the previous milestone. Each merges to `main` by squash PR once CI is green. `main` only ever
-  holds working milestones. The repository has no ruleset, so PRs merge without `--admin`.
+  holds working milestones. The ProtectMainCloisters ruleset requires a review a solo author cannot give, so PRs merge
+  with `--admin` once CI is green.
 - **Sessions.** Start each milestone in a fresh session.
 - **Done** means the milestone's checks pass, not that its code is written.
 - **Staging.** Stage explicit paths only; never commit build artifacts (`target/`, `.cpcache/`, `node_modules/`,
