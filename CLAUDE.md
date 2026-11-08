@@ -72,5 +72,5 @@ of them before pushing.
 - Babashka must be installed user-wide (`mise use -g babashka`), not only through this repo's `mise.toml`: the
   installed CLI's `#!/usr/bin/env bb` finds no version outside the repo. `bbin` copies the script, so reinstall after
   every CLI change.
-- gh: the active account is `saqibsaleem-mands`; `gh auth switch -u saqib-trywe` for this repository and switch back
-  after. Git pushes go over SSH.
+- gh: use only the `saqib-trywe` account for this repository. If another account is active, run
+  `gh auth switch -u saqib-trywe` and leave it there. Git pushes go over SSH.
