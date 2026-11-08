@@ -23,8 +23,8 @@ today.
 |---|---|---|
 | M0 Scaffold and CI | deps, uberjar, lint, format, test runner, CI on macOS and Linux | built |
 | M1 Store and lifecycle | file locations, config, daemon lock, schema v1, migrations, snapshots, integrity checks | built |
-| M2 Core | invariants, claims, events, page revisions, mentions, export | planned |
-| M3 Query grammar and search | the query language, full-text search, cursors | planned |
+| M2 Core | invariants, claims, events, page revisions, mentions, export | built |
+| M3 Query grammar and search | the query language, full-text search, cursors | built |
 | M4 HTTP and MCP | the HTTP API and the MCP endpoint | planned |
 | M5 CLI | every `cloisters` command, `daemon` subcommands, the stdio MCP proxy | planned |
 | M6 Web UI | issue and page views, the page editor, live updates | planned |
