@@ -4,6 +4,10 @@
         com.github.seancorfield/honeysql {:mvn/version "2.8.85"}
         org.xerial/sqlite-jdbc {:mvn/version "3.53.4.0"}
         com.zaxxer/HikariCP {:mvn/version "7.1.0"}
+        metosin/malli {:mvn/version "0.20.3"}
+        metosin/jsonista {:mvn/version "1.0.2"}
+        io.github.nextjournal/markdown {:mvn/version "0.7.228"}
+        io.github.java-diff-utils/java-diff-utils {:mvn/version "4.18"}
         org.slf4j/slf4j-simple {:mvn/version "2.0.20"}}
  :aliases
  {:run {:main-opts ["-m" "cloisters.main"]

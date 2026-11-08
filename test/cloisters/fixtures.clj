@@ -1,10 +1,12 @@
 (ns cloisters.fixtures
   "Temporary homes and stores for tests, always against a real SQLite file."
   (:require [clojure.java.io :as io]
+            [cloisters.projects :as projects]
             [cloisters.store :as store]
             [honey.sql :as sql]
             [next.jdbc :as jdbc])
-  (:import (java.io File)
+  (:import (clojure.lang ExceptionInfo)
+           (java.io File)
            (java.nio.file Files)
            (java.nio.file.attribute FileAttribute)))
 
@@ -38,3 +40,24 @@
   (let [n (store/allocate! tx project :page)]
     (insert! tx :page {:project project :number n :title title :rank n :created now :updated now})
     n))
+
+;; ---------------------------------------------------------------- operation contexts
+
+(defn ctx
+  "An operation context over a fresh store in a temporary home, bound to project CLO, which exists."
+  []
+  (let [c {:store (open (tmp-dir)) :actor "test" :project "CLO"}]
+    (projects/create-project c {:key "CLO" :name "Cloisters"})
+    c))
+
+(defmacro with-ctx
+  "Binds sym to a fresh context for body, closing its store after."
+  [[sym expr] & body]
+  `(let [~sym ~expr]
+     (try ~@body (finally (store/close (:store ~sym))))))
+
+(defn rejection
+  "The facts of the refusal (f) throws, with :error its code; nil when it succeeds."
+  [f]
+  (try (f) nil
+       (catch ExceptionInfo e (ex-data e))))
