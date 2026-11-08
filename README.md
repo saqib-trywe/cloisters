@@ -25,12 +25,12 @@ today.
 | M1 Store and lifecycle | file locations, config, daemon lock, schema v1, migrations, snapshots, integrity checks | built |
 | M2 Core | invariants, claims, events, page revisions, mentions, export | built |
 | M3 Query grammar and search | the query language, full-text search, cursors | built |
-| M4 HTTP and MCP | the HTTP API and the MCP endpoint | planned |
+| M4 HTTP and MCP | the HTTP API and the MCP endpoint | built |
 | M5 CLI | every `cloisters` command, `daemon` subcommands, the stdio MCP proxy | planned |
 | M6 Web UI | issue and page views, the page editor, live updates | planned |
 
-So today the daemon starts, takes its lock, opens and migrates the store, snapshots it, and holds until stopped. It
-does not listen on a port yet, and the CLI has no commands.
+So today the daemon starts, takes its lock, opens and migrates the store, snapshots it, and serves the HTTP API and
+MCP on `127.0.0.1`. There is no web UI yet, and the CLI has no commands: create projects over the HTTP API (below).
 
 ## Requirements
 
@@ -83,10 +83,10 @@ On start the daemon:
 2. takes the daemon lock
 3. checks the store's integrity, then migrates it (snapshotting it first if it has data)
 4. takes today's snapshot
-5. prints one line and holds until stopped:
+5. serves HTTP and MCP on `127.0.0.1:<port>`, prints one line and holds until stopped:
 
 ```text
-cloisters daemon 0.1.0-SNAPSHOT on store /Users/you/.local/share/cloisters/cloisters.db (schema v1)
+cloisters daemon 0.1.0-SNAPSHOT on http://127.0.0.1:7227 store /Users/you/.local/share/cloisters/cloisters.db (schema v1)
 ```
 
 ### A scratch or development instance
@@ -141,7 +141,7 @@ One EDN map, read by the daemon at start (and, from M5, by the CLI). Every key i
 
 | Key | Default | Meaning |
 |---|---|---|
-| `:port` | `7227` | The TCP port the daemon serves on, bound to `127.0.0.1` only (from M4). Must be an integer from 1 to 65535. |
+| `:port` | `7227` | The TCP port the daemon serves on, bound to `127.0.0.1` only. Must be an integer from 1 to 65535. |
 
 ```clojure
 ;; ~/.config/cloisters/config.edn
@@ -280,17 +280,65 @@ cp "$snap" "$data/cloisters.db"
 Nothing is deleted, so a mistaken restore can itself be restored. The next start migrates the restored store as
 usual.
 
+## HTTP API
+
+Served on `http://127.0.0.1:<port>/api/…`. The spec is
+[Define the shared contract and HTTP adapter](.wayfinder/tickets/T10-shared-contract-and-http.md) and the inherited
+[Design the HTTP API shape](docs/inherited/tickets/T09-http-api-shape.md). Bodies and responses are JSON in
+snake_case, with nulls left out; request bodies take the same arguments as the MCP tool of the same name, without
+`id`.
+
+| Route | Does |
+|---|---|
+| `GET /api/meta` | the daemon version and data directory |
+| `GET /api/projects` · `POST /api/projects` `{key, name}` | list or create projects |
+| `GET /api/search?q=&cursor=&limit=` | one search over issues and pages: `{effective_query, results, next_cursor, has_more}` |
+| `POST /api/issues` · `GET /api/issues/{id}?include=events` · `PATCH /api/issues/{id}` | create, read, update an issue |
+| `POST /api/issues/{id}/claim` · `/release` · `/reassign` · `/close` · `/reopen` | the intent actions |
+| `GET /api/issues/{id}/events?cursor=&limit=` | an issue's full history, with full before and after text |
+| `POST /api/pages` · `GET /api/pages/{id}?revision=&include=revisions` · `PATCH /api/pages/{id}` | create, read (optionally an old revision), update or move a page |
+| `POST /api/pages/{id}/archive` · `/unarchive` · `/restore` | archive and unarchive (summary required), restore a revision |
+| `GET /api/pages/{id}/revisions` · `GET /api/pages/{id}/diff?from=&to=` | a page's revisions; a diff between two |
+| `GET /api/events?after=&limit=` | every event after a sequence number |
+| `GET /api/events/stream?after=` | the same as server-sent events, each `id:` its sequence; resumes from `Last-Event-ID` |
+
+- **Text.** Send `Accept: text/plain` for the compact text rendering MCP's text block carries (what the CLI prints).
+- **Errors** are `{error, message, …facts}`, with status 404 (`not_found`, `unknown_project`, `wrong_kind`), 400
+  (`invalid_query`, `invalid_argument`, `edit_mismatch`) or 409 (every invariant or concurrency refusal). Switch on
+  `error`, never on the status. As text, a refusal reads `claim_conflict: …`.
+- **Headers.** `Cloisters-Project: CLO` binds unscoped searches and creates to a project, as the CLI will from a
+  repository's binding. `Cloisters-Client: cli` names the event actor; without it, events record `http`.
+- **Localhost only.** The daemon binds `127.0.0.1`, and refuses with 403 any `Host` other than `localhost` or
+  `127.0.0.1` on its port, and any foreign `Origin`.
+
+```sh
+api() { curl -s -H 'Content-Type: application/json' -H 'Cloisters-Client: cli' "$@"; }
+api -X POST localhost:7298/api/projects -d '{"key":"CLO","name":"Cloisters"}'
+api -X POST localhost:7298/api/issues -d '{"project":"CLO","title":"Write the glossary"}'
+api -H 'Accept: text/plain' 'localhost:7298/api/search?q=ready'
+```
+
+## MCP
+
+Served at `http://127.0.0.1:<port>/mcp`, hand-rolled per [ADR 0001](docs/adr/0001-hand-rolled-mcp.md): protocol
+revisions 2026-07-28 (stateless) and 2025-11-25 (initialize handshake), JSON responses only, tools only. Bind a
+connection to a project in the URL, so creates default to it and unscoped searches stay in it:
+
+```sh
+claude mcp add --scope project --transport http cloisters 'http://127.0.0.1:7227/mcp?project=CLO'
+```
+
+Sixteen tools ([Design the MCP tool contract](docs/inherited/tickets/T07-mcp-tool-contract.md),
+[Extend the MCP tool contract for pages](.wayfinder/tickets/T11-mcp-tools-for-pages.md)): `search`, `get_issue`,
+`create_issue`, `update_issue`, `claim_issue`, `release_issue`, `reassign_issue`, `close_issue`, `reopen_issue`,
+`get_page`, `create_page`, `update_page`, `archive_page`, `unarchive_page`, `restore_page` and `diff_page`. Each
+returns a text block and `structuredContent` matching its declared `outputSchema`; a refusal is an `isError` result
+carrying `{error, …facts}`. Events record the actor as `mcp:<client name>`.
+
 ## Planned surfaces
 
-None of these exist yet. They are summarised here so the configuration above makes sense; the linked tickets are the
-spec.
+None of these exist yet; the linked tickets are the spec.
 
-- **HTTP API (M4)** on `http://127.0.0.1:<port>/api/…`: REST plus intent actions for issues and pages, `Accept:
-  text/plain` for the compact text rendering, an event feed and a resumable SSE stream. See
-  [Define the shared contract and HTTP adapter](.wayfinder/tickets/T10-shared-contract-and-http.md).
-- **MCP (M4)** at `http://127.0.0.1:<port>/mcp?project=CLO`, protocol revisions 2025-11-25 and 2026-07-28, with
-  sixteen tools. See [Choose the MCP implementation](.wayfinder/tickets/T07-mcp-implementation.md) and
-  [Extend the MCP tool contract for pages](.wayfinder/tickets/T11-mcp-tools-for-pages.md).
 - **CLI (M5)**, installed with `bbin install cli/cloisters.clj --as cloisters`. bbin copies the script, so reinstall
   after every change. It covers `new`, `show`, `edit`, the `page` verbs, `project new`, `init`, the `daemon`
   subcommands (`install`, `run`, `start`, `stop`, `status`, `logs`, `export`, `restore`) and the `cloisters mcp` stdio
@@ -308,15 +356,19 @@ clojure -M:fmt check     # cljfmt; `clojure -M:fmt fix` rewrites
 clojure -M:test          # test-runner
 clojure -T:build uber    # target/cloisters-daemon.jar
 clojure -M:run           # the daemon from source
+scripts/conformance.sh   # MCP conformance at both revisions, against the uberjar (needs `npm ci`)
 ```
 
 The tests always run against real SQLite files in temporary directories, never a fake. The lock tests start the
-daemon in a separate JVM, because a file lock belongs to a process. CI runs lint, the format check, the tests, the
-uberjar and a CLI load check on `ubuntu-latest` and `macos-latest`. Run all of them before pushing.
+daemon in a separate JVM, because a file lock belongs to a process. The MCP tests validate every tool's result
+against the JSON Schema it declares. CI runs lint, the format check, the tests, the uberjar, the conformance suite
+and a CLI load check on `ubuntu-latest` and `macos-latest`. Run all of them before pushing.
 
 | Path | Is |
 |---|---|
-| `src/cloisters/` | the daemon: `paths` (locations and config), `lock`, `store` (connections and migrations), `backup` (snapshots and integrity), `main` |
+| `src/cloisters/` | the daemon: `paths`, `lock`, `store`, `backup` and `main`; the core (`core`, `contract`, `issues`, `pages`, `projects`, `events`, `query`, `search`); the adapters (`http`, `mcp`) and the shared `text` rendering |
+| `conformance/` | the MCP conformance suite's expected-failures baselines, one per revision |
+| `scripts/` | `conformance.sh`, the CI conformance gate |
 | `resources/migrations/` | numbered schema migrations; append-only once merged |
 | `test/cloisters/` | tests |
 | `cli/cloisters.clj` | the babashka CLI, one file |

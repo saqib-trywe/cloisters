@@ -5,6 +5,9 @@
         org.xerial/sqlite-jdbc {:mvn/version "3.53.4.0"}
         com.zaxxer/HikariCP {:mvn/version "7.1.0"}
         metosin/malli {:mvn/version "0.20.3"}
+        ring/ring-core {:mvn/version "1.15.6"}
+        ring/ring-jetty-adapter {:mvn/version "1.15.6"}
+        metosin/reitit-ring {:mvn/version "0.11.0"}
         metosin/jsonista {:mvn/version "1.0.2"}
         io.github.nextjournal/markdown {:mvn/version "0.7.228"}
         io.github.java-diff-utils/java-diff-utils {:mvn/version "4.18"}
@@ -13,7 +16,8 @@
  {:run {:main-opts ["-m" "cloisters.main"]
         :jvm-opts ["--enable-native-access=ALL-UNNAMED"]}
   :test {:extra-paths ["test"]
-         :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+         :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}
+                      com.networknt/json-schema-validator {:mvn/version "3.0.9"}}
          :jvm-opts ["--enable-native-access=ALL-UNNAMED"]
          :main-opts ["-m" "cognitect.test-runner"]
          :exec-fn cognitect.test-runner.api/test}

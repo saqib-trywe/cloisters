@@ -1,0 +1,34 @@
+# Expected conformance failures at 2025-11-25, for `conformance server --requirements 2025-11-25`.
+#
+# Each entry is a scenario cloisters cannot pass by design: the suite's own fixture tools (test_*, greet,
+# slow_compute, ...), or resources, prompts, completion, logging, sampling, elicitation, tasks and
+# input-required results, none of which cloisters offers (tools only; ADR 0001). server-stateless and caching
+# are listed check by check, so their applicable checks stay enforced. A passing entry fails the run as stale:
+# remove it.
+server:
+  - completion-complete
+  - elicitation-sep1034-defaults
+  - elicitation-sep1330-enums
+  - json-schema-2020-12
+  - logging-set-level
+  - prompts-get-embedded-resource
+  - prompts-get-simple
+  - prompts-get-with-args
+  - prompts-get-with-image
+  - prompts-list
+  - resources-list
+  - resources-read-binary
+  - resources-read-text
+  - resources-subscribe
+  - resources-templates-read
+  - resources-unsubscribe
+  - tools-call-audio
+  - tools-call-elicitation
+  - tools-call-embedded-resource
+  - tools-call-error
+  - tools-call-image
+  - tools-call-mixed-content
+  - tools-call-sampling
+  - tools-call-simple-text
+  - tools-call-with-logging
+  - tools-call-with-progress

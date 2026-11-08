@@ -1,7 +1,8 @@
 (ns cloisters.main
-  "The daemon, run in the foreground: take the lock, open the store, snapshot it daily, and hold until stopped. The
-  HTTP, MCP and UI adapters are not built yet."
-  (:require [cloisters.lock :as lock]
+  "The daemon, run in the foreground: take the lock, open the store, snapshot it daily, serve HTTP and MCP on
+  127.0.0.1, and hold until stopped."
+  (:require [cloisters.http :as http]
+            [cloisters.lock :as lock]
             [cloisters.paths :as paths]
             [cloisters.store :as store])
   (:import (java.util.concurrent Executors ScheduledExecutorService TimeUnit))
@@ -21,14 +22,18 @@
           held (lock/acquire! (paths/lock-file dirs) {:port port :version version})
           st (try (store/open (paths/store-file dirs) (paths/backups-dir dirs))
                   (catch Throwable e (lock/release! held) (throw e)))
-          ^ScheduledExecutorService daily (Executors/newSingleThreadScheduledExecutor)]
+          ^ScheduledExecutorService daily (Executors/newSingleThreadScheduledExecutor)
+          server (try (http/start! {:store st :version version :dirs dirs} port)
+                      (catch Throwable e (store/close st) (lock/release! held) (throw e)))]
       (store/daily-snapshot! st)
       (.scheduleAtFixedRate daily #(store/daily-snapshot! st) 24 24 TimeUnit/HOURS)
       (.addShutdownHook (Runtime/getRuntime)
                         (Thread. (fn []
+                                   (http/stop! server)
                                    (.shutdownNow daily)
                                    (store/close st)
                                    (lock/release! held))))
-      (println "cloisters daemon" version "on store" (str (:file st)) (str "(schema v" (:version st) ")"))
+      (println "cloisters daemon" version "on" (str "http://127.0.0.1:" port) "store" (str (:file st))
+               (str "(schema v" (:version st) ")"))
       @(promise))
     (catch Throwable e (fail e))))

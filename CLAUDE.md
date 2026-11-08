@@ -16,6 +16,8 @@ API, MCP and the web UI over one core and one SQLite store; a separate babashka 
 | `test/cloisters/` | tests, run by cognitect-labs test-runner |
 | `cli/cloisters.clj` | the babashka CLI, one file |
 | `build.clj` | tools.build: the daemon uberjar |
+| `conformance/` | MCP conformance expected-failures baselines, one per protocol revision |
+| `scripts/conformance.sh` | the conformance gate: runs the uberjar under a scratch home, both revisions |
 | `package.json` | node tooling for CI only: the MCP conformance suite (jsdom from M6) |
 
 ## Commands
@@ -26,10 +28,11 @@ clojure -M:fmt check     # cljfmt; `clojure -M:fmt fix` rewrites
 clojure -M:test          # test-runner
 clojure -T:build uber    # target/cloisters-daemon.jar
 clojure -M:run           # the daemon from source
+scripts/conformance.sh   # MCP conformance at both revisions, after `npm ci` and the uberjar
 ```
 
-CI runs lint, format check, tests, the uberjar and a CLI load check on `ubuntu-latest` and `macos-latest`. Run all
-of them before pushing.
+CI runs lint, format check, tests, the uberjar, MCP conformance and a CLI load check on `ubuntu-latest` and
+`macos-latest`. Run all of them before pushing.
 
 ## Clojure conventions
 
@@ -39,7 +42,12 @@ of them before pushing.
   `contract/validate!`, refuses with `core/fail` (the contract's error code plus the facts the reader needs), writes
   through `core/write!`, and records at most one event through `core/record!`. The query grammar itself is
   `cloisters.query`, which knows nothing of the store.
-- The core validates; adapters stay thin and duplicate nothing. The CLI shares no code with the daemon: it sends
+- The core validates; adapters stay thin and duplicate nothing. `cloisters.http` and `cloisters.mcp` only turn
+  requests into argument maps and results into responses; both render text through `cloisters.text` and JSON through
+  the one mapper in `cloisters.json`. A tool's `outputSchema` is its entry in `contract/results`: change the result
+  and the schema together, and the MCP test validates every tool's result against it.
+- Conformance baselines list only what cloisters cannot pass by design (fixture tools, resources, prompts, tasks…).
+  A newly passing entry fails CI as stale: delete it. The CLI shares no code with the daemon: it sends
   requests and prints the daemon's own text rendering.
 - The CLI uses only what babashka bundles (`babashka.http-client`, cheshire, `babashka.cli`, `babashka.fs`,
   `babashka.process`). A library loaded from source would be interpreted on every start and break the 100 ms gate.

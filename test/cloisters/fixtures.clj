@@ -13,6 +13,19 @@
 (defn tmp-dir ^File []
   (.toFile (Files/createTempDirectory "cloisters-test" (make-array FileAttribute 0))))
 
+(defn free-port
+  "A TCP port free right now, for a test server: never 7227 (a real install) or 7117 (tikka)."
+  []
+  (with-open [s (java.net.ServerSocket. 0)] (.getLocalPort s)))
+
+(defn configure!
+  "Writes home's config.edn with port, and returns port."
+  [^File home port]
+  (let [f (io/file home "config" "config.edn")]
+    (io/make-parents f)
+    (spit f (pr-str {:port port}))
+    port))
+
 (defn store-file ^File [^File home] (io/file home "data" "cloisters.db"))
 (defn backups ^File [^File home] (io/file home "data" "backups"))
 

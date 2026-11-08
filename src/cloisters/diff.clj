@@ -10,8 +10,9 @@
 (defn unified
   "A unified diff of old against new, headed by the labels from and to. Empty when the texts have the same lines."
   [old new from to]
-  (let [a (str/split-lines (or old ""))
-        b (str/split-lines (or new ""))
+  (let [lines #(if (empty? %) [] (str/split-lines %))
+        a (lines (or old ""))
+        b (lines (or new ""))
         ^Patch patch (DiffUtils/diff ^java.util.List a ^java.util.List b)]
     (if (empty? (.getDeltas patch))
       ""
