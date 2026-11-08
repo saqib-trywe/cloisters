@@ -1,1 +1,2 @@
-{:lint-as {cloisters.store-test/with-store clojure.core/with-open}}
+{:lint-as {cloisters.store-test/with-store clojure.core/with-open
+           cloisters.fixtures/with-ctx clojure.core/let}}
