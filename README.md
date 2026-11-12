@@ -26,11 +26,12 @@ today.
 | M2 Core | invariants, claims, events, page revisions, mentions, export | built |
 | M3 Query grammar and search | the query language, full-text search, cursors | built |
 | M4 HTTP and MCP | the HTTP API and the MCP endpoint | built |
-| M5 CLI | every `cloisters` command, `daemon` subcommands, the stdio MCP proxy | planned |
+| M5 CLI | every `cloisters` command, `daemon` subcommands, the stdio MCP proxy | built |
 | M6 Web UI | issue and page views, the page editor, live updates | planned |
 
 So today the daemon starts, takes its lock, opens and migrates the store, snapshots it, and serves the HTTP API and
-MCP on `127.0.0.1`. There is no web UI yet, and the CLI has no commands: create projects over the HTTP API (below).
+MCP on `127.0.0.1`; the `cloisters` CLI covers every operation, runs the daemon as a login service and binds
+repositories. There is no web UI yet.
 
 ## Requirements
 
@@ -43,6 +44,7 @@ MCP on `127.0.0.1`. There is no web UI yet, and the CLI has no commands: create 
   | Clojure CLI | 1.12.6.1673 | building, testing and running the daemon from source |
   | babashka | 1.13.227 | the CLI |
   | node | 26.12.1 | CI tooling only (the MCP conformance suite) |
+  | hyperfine | 2.0.0 | CI tooling only (the CLI's startup gate) |
 
 - `sqlite3` is optional, for reading the store by hand.
 
@@ -54,12 +56,29 @@ cd cloisters
 mise install                  # the JDK, Clojure CLI, babashka and node pinned in mise.toml
 mise use -g babashka@1.13.227 # babashka user-wide too; see below
 npm ci                        # only if you want to run the conformance suite locally
+clojure -T:build uber         # target/cloisters-daemon.jar
+bbin install cli/cloisters.clj --as cloisters   # the CLI, as ~/.local/bin/cloisters
+cloisters daemon install      # copy the jar, write the login service and start it
 ```
 
 Install babashka user-wide as well. The installed CLI starts with `#!/usr/bin/env bb`, and outside this repository
-mise's shim finds no babashka version unless one is installed globally.
+mise's shim finds no babashka version unless one is installed globally. bbin copies the script, so run
+`bbin install` again after every CLI change. To upgrade the daemon, rebuild the jar and run `cloisters daemon install`
+again.
 
 ## Running the daemon
+
+As a login service, with the CLI (see [The daemon as a service](#the-daemon-as-a-service)):
+
+```sh
+cloisters daemon install   # then: cloisters daemon start | stop | restart | status | logs
+```
+
+In the foreground, through the CLI, from the installed jar or a given one:
+
+```sh
+cloisters daemon run --jar target/cloisters-daemon.jar
+```
 
 From source:
 
@@ -111,12 +130,9 @@ CLOISTERS_HOME=.cloisters-dev clojure -M:run
 
 ### Stopping
 
-Press Ctrl-C in the foreground, or send `SIGTERM` to the pid recorded in the lock. Never kill by pattern: that could
-hit another instance.
-
-```sh
-kill "$(sed -E 's/.*:pid ([0-9]+).*/\1/' "$CLOISTERS_HOME/data/daemon.lock")"
-```
+`cloisters daemon stop` stops the daemon of the current home: through the service manager when it runs one, then by
+the pid recorded in the lock. In the foreground, Ctrl-C does the same. Never kill by pattern: that could hit another
+instance.
 
 A stop lets an in-flight write finish (for up to 5 seconds), checkpoints the WAL into the store file, and clears the
 lock.
@@ -137,7 +153,7 @@ The daemon exits with status 1 and one line on stderr naming the problem:
 
 ### config.edn
 
-One EDN map, read by the daemon at start (and, from M5, by the CLI). Every key is optional.
+One EDN map, read by the daemon at start and by every CLI command. Every key is optional.
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -161,8 +177,9 @@ cloisters follows the XDG base directory layout on macOS as well as Linux. It ne
 | store (plus `-wal` and `-shm` while running) | `$XDG_DATA_HOME/cloisters/cloisters.db` | `~/.local/share/cloisters/cloisters.db` |
 | snapshots | `$XDG_DATA_HOME/cloisters/backups/` | `~/.local/share/cloisters/backups/` |
 | daemon lock | `$XDG_DATA_HOME/cloisters/daemon.lock` | `~/.local/share/cloisters/daemon.lock` |
-| daemon jar (from M5) | `$XDG_DATA_HOME/cloisters/lib/` | `~/.local/share/cloisters/lib/` |
-| logs (from M5) | `$XDG_STATE_HOME/cloisters/logs/` | `~/.local/state/cloisters/logs/` |
+| daemon jar, and `install.edn` recording it and its JDK | `$XDG_DATA_HOME/cloisters/lib/` | `~/.local/share/cloisters/lib/` |
+| the service's log | `$XDG_STATE_HOME/cloisters/logs/daemon.log` | `~/.local/state/cloisters/logs/daemon.log` |
+| repository binding | `.cloisters` in the repository, found by walking up | |
 | cache | none yet | |
 
 An XDG variable that is unset, empty or relative is ignored, as the XDG spec requires.
@@ -264,21 +281,29 @@ names the newest snapshot that passes.
 
 ### Restoring a snapshot
 
-`cloisters daemon restore <snapshot>` arrives with the CLI in M5. It takes the lock, checks the snapshot, moves the
-current store aside to `backups/pre-restore-<time>.db` and copies the snapshot in. Until then, do the same by hand,
-with the daemon stopped:
+With the daemon stopped:
 
 ```sh
-data=~/.local/share/cloisters
-snap="$data/backups/daily-2026-11-07.db"
-sqlite3 "$snap" 'PRAGMA quick_check'   # must print: ok
-mv "$data/cloisters.db" "$data/backups/pre-restore-$(date -u +%Y%m%dT%H%M%SZ).db"
-rm -f "$data/cloisters.db-wal" "$data/cloisters.db-shm"
-cp "$snap" "$data/cloisters.db"
+cloisters daemon stop
+cloisters daemon restore daily-2026-11-07.db   # a name in backups/, or a path
+cloisters daemon start
 ```
 
-Nothing is deleted, so a mistaken restore can itself be restored. The next start migrates the restored store as
+It runs the daemon jar offline, with the JDK recorded at install. It takes the lock (so it refuses while a daemon
+runs), checks the snapshot with `quick_check`, refuses a snapshot whose schema is newer than the daemon knows, moves
+the current store (and its `-wal` and `-shm` files) aside to `backups/pre-restore-<time>.db`, and copies the snapshot
+in. Nothing is deleted, so a mistaken restore can itself be restored. The next start migrates the restored store as
 usual.
+
+### Exporting
+
+```sh
+cloisters daemon export cloisters.jsonl
+```
+
+JSON Lines in the contract's own types: projects, then issues and pages by project and number, then every event by
+sequence. Two exports of one store are byte-identical. It reads the store file directly, so it works whether or not a
+daemon is running. There is no import.
 
 ## HTTP API
 
@@ -306,7 +331,7 @@ snake_case, with nulls left out; request bodies take the same arguments as the M
 - **Errors** are `{error, message, …facts}`, with status 404 (`not_found`, `unknown_project`, `wrong_kind`), 400
   (`invalid_query`, `invalid_argument`, `edit_mismatch`) or 409 (every invariant or concurrency refusal). Switch on
   `error`, never on the status. As text, a refusal reads `claim_conflict: …`.
-- **Headers.** `Cloisters-Project: CLO` binds unscoped searches and creates to a project, as the CLI will from a
+- **Headers.** `Cloisters-Project: CLO` binds unscoped searches and creates to a project, as the CLI does from a
   repository's binding. `Cloisters-Client: cli` names the event actor; without it, events record `http`.
 - **Localhost only.** The daemon binds `127.0.0.1`, and refuses with 403 any `Host` other than `localhost` or
   `127.0.0.1` on its port, and any foreign `Origin`.
@@ -335,16 +360,100 @@ Sixteen tools ([Design the MCP tool contract](docs/inherited/tickets/T07-mcp-too
 returns a text block and `structuredContent` matching its declared `outputSchema`; a refusal is an `isError` result
 carrying `{error, …facts}`. Events record the actor as `mcp:<client name>`.
 
+## CLI
+
+`cli/cloisters.clj`, one babashka script using only what babashka bundles, installed with
+`bbin install cli/cloisters.clj --as cloisters`. It shares no code with the daemon: it sends requests and prints the
+daemon's own text rendering, the same text MCP results carry. The spec is
+[Choose the CLI approach](.wayfinder/tickets/T09-cli-approach.md) and the inherited
+[Choose the CLI approach](docs/inherited/tickets/T06-cli-approach.md). `cloisters help` lists every command.
+
+```sh
+cloisters init CLO --new "Cloisters"   # create project CLO and bind this directory to it
+cloisters new "Write the glossary" --label docs
+cloisters search ready                 # alias: ls
+cloisters claim CLO-1                  # --as defaults to $CLOISTERS_ASSIGNEE, then your username
+cloisters edit CLO-1                   # $VISUAL or $EDITOR on the body
+cloisters close CLO-1 done -m "Written."
+cloisters page new "Glossary" --body-file glossary.md -m "First draft"
+cloisters page tree
+cloisters show CLO-2 --events          # an issue or a page; --events adds its history or revisions
+```
+
+| Command | Does |
+|---|---|
+| `search [QUERY…]`, `ls` | one search over issues and pages; the query is sent raw, and the daemon refuses a bad one with suggestions |
+| `show ID [--events] [--revision n]` | an issue or a page |
+| `edit ID` | `$EDITOR` on the body, saved against the version read; a page takes `--title` and `-m` (summary) too |
+| `edit ID [--title t] [--label +a\|-b]… [--blocked-by +ID\|-ID]… [--parent ID\|none] [--rank n\|--before ID\|--after ID] [-m comment]` | an issue's fields, without the editor |
+| `new "<title>" [--body-file f\|-] [--label l]… [--parent ID] [--blocked-by ID]… [-m comment]` | create an issue |
+| `claim`, `release ID [--as name]` · `reassign ID --from x --to y` | claims |
+| `close ID done\|dropped -m "…"` · `reopen ID -m "…"` | close and reopen |
+| `close --query '<q>' done\|dropped -m "…"` | bulk close: every open match, leaves first, one close each; not atomic, it stops at the first refusal |
+| `page new\|tree\|history\|diff\|move\|archive\|unarchive\|restore` | the page verbs |
+| `project new KEY "Name"` · `project list` | projects; creating one is a human act, never MCP |
+| `init KEY [--new "Name"]` | bind this directory: write `.cloisters` and the `cloisters` entry in `.mcp.json` |
+| `mcp` | a stdio MCP server, proxied to the daemon with this directory's binding |
+| `daemon install\|uninstall\|run\|start\|stop\|restart\|status\|logs\|export\|restore` | the daemon |
+
+- **Output** is the daemon's text, or with `--json` its JSON (`structuredContent`). It never changes when piped.
+- **Exit codes**: `0` done; `1` refused, with the error code first on stderr (`claim_conflict: …`, or the error body
+  with `--json`); `2` a usage error; `3` the daemon is unreachable, naming the fix.
+- **Binding.** Every command sends the project named by the nearest `.cloisters` (walking up from the working
+  directory), or by `--project KEY`. Outside a bound directory, searches span every project and `new` needs
+  `--project`.
+- **Warnings.** One stderr line when the daemon's version differs from the CLI's, or its data directory differs from
+  the one the CLI resolves (which `daemon export` and `daemon restore` open). The CLI never restarts the daemon.
+- **The editor.** `edit` writes the body to a temporary file and opens `$VISUAL`, else `$EDITOR`, else `vi`. An
+  unchanged file is a no-op. A save always passes the version read, so a concurrent edit is refused as
+  `stale_version` instead of overwritten, and a refused save keeps the edited file and prints its path.
+- **The events' actor** is `cli`.
+
+### Binding a repository
+
+```sh
+cd my-repo
+cloisters init MY --new "My project"   # or `cloisters init MY` for an existing project
+git add .cloisters .mcp.json
+```
+
+`init` refuses a key that doesn't exist unless `--new` names it, so a typo never becomes a permanent key. It writes
+`.cloisters` (`{:project "MY"}`), read by the CLI and `cloisters mcp`, and merges a `cloisters` server into
+`.mcp.json` (`http://127.0.0.1:<port>/mcp?project=MY`), which Claude Code reads. Commit both.
+
+### The stdio MCP proxy
+
+For clients that only start stdio servers, configure `cloisters mcp` as the command, run from the bound directory. It
+reads newline-delimited JSON-RPC from stdin, POSTs each message to `/mcp?project=<binding>` and writes each response
+back as a line; a notification's 202 writes nothing. It is framing only, except that it mirrors a 2026-07-28
+message's version, method and tool name into the headers HTTP requires, carries the 2025-11-25 session id, and:
+
+- exits non-zero, with the fix on stderr, if no daemon answers at launch;
+- while the daemon is down, answers each request with a JSON-RPC error naming the fix;
+- after a daemon restart, replays the client's `initialize` once, so a 2025-11-25 client keeps working without
+  reconnecting.
+
+### The daemon as a service
+
+`cloisters daemon install [--jar path]` copies the jar (default `target/cloisters-daemon.jar`) to the data directory's
+`lib/`, records the JDK it found (`$JAVA_HOME`, else `java` on `PATH`, resolved to its real `java.home` so no version
+manager's shim ends up in the unit; 21 or later), and writes a per-user service:
+
+| OS | Unit | Managed with |
+|---|---|---|
+| macOS | `~/Library/LaunchAgents/cloisters.daemon.plist` | `launchctl` in the `gui/<uid>` domain |
+| Linux | `~/.config/systemd/user/cloisters.service` | `systemctl --user` |
+
+The service starts at login and restarts after a crash, never after a clean stop. Because launchd and systemd don't
+inherit the shell's environment, the unit records `CLOISTERS_HOME`, or the resolved XDG locations; reinstalling picks
+up a changed environment. Its output goes to `logs/daemon.log` (`cloisters daemon logs [-f] [-n lines]`). `--dry-run`
+prints the unit without changing anything. `daemon uninstall` removes the unit and keeps the data and jar. Nothing
+starts the daemon implicitly.
+
 ## Planned surfaces
 
-None of these exist yet; the linked tickets are the spec.
+The linked ticket is the spec.
 
-- **CLI (M5)**, installed with `bbin install cli/cloisters.clj --as cloisters`. bbin copies the script, so reinstall
-  after every change. It covers `new`, `show`, `edit`, the `page` verbs, `project new`, `init`, the `daemon`
-  subcommands (`install`, `run`, `start`, `stop`, `status`, `logs`, `export`, `restore`) and the `cloisters mcp` stdio
-  proxy. See [Choose the CLI approach](.wayfinder/tickets/T09-cli-approach.md).
-- **Repository binding (M5)**: a committed `.cloisters` file, `{:project "CLO"}`, found by walking up from the working
-  directory. `cloisters init CLO` writes it, along with the project-scoped MCP entry.
 - **Web UI (M6)** at `http://127.0.0.1:<port>/`: server-rendered with htmx. See
   [Choose the web UI approach](.wayfinder/tickets/T08-web-ui-approach.md).
 
@@ -357,18 +466,20 @@ clojure -M:test          # test-runner
 clojure -T:build uber    # target/cloisters-daemon.jar
 clojure -M:run           # the daemon from source
 scripts/conformance.sh   # MCP conformance at both revisions, against the uberjar (needs `npm ci`)
+scripts/cli-gate.sh      # the CLI's 100 ms gate and daemon subcommands, against the uberjar (needs hyperfine)
 ```
 
 The tests always run against real SQLite files in temporary directories, never a fake. The lock tests start the
 daemon in a separate JVM, because a file lock belongs to a process. The MCP tests validate every tool's result
-against the JSON Schema it declares. CI runs lint, the format check, the tests, the uberjar, the conformance suite
-and a CLI load check on `ubuntu-latest` and `macos-latest`. Run all of them before pushing.
+against the JSON Schema it declares. The CLI tests run `bb cli/cloisters.clj` as a process against a daemon served in
+the test JVM. CI runs lint, the format check, the tests, the uberjar, the conformance suite and the CLI gate on
+`ubuntu-latest` and `macos-latest`. Run all of them before pushing.
 
 | Path | Is |
 |---|---|
-| `src/cloisters/` | the daemon: `paths`, `lock`, `store`, `backup` and `main`; the core (`core`, `contract`, `issues`, `pages`, `projects`, `events`, `query`, `search`); the adapters (`http`, `mcp`) and the shared `text` rendering |
+| `src/cloisters/` | the daemon: `paths`, `lock`, `store`, `backup`, `restore` and `main`; the core (`core`, `contract`, `issues`, `pages`, `projects`, `events`, `query`, `search`); the adapters (`http`, `mcp`) and the shared `text` rendering |
 | `conformance/` | the MCP conformance suite's expected-failures baselines, one per revision |
-| `scripts/` | `conformance.sh`, the CI conformance gate |
+| `scripts/` | `conformance.sh` and `cli-gate.sh`, the CI gates run against the uberjar |
 | `resources/migrations/` | numbered schema migrations; append-only once merged |
 | `test/cloisters/` | tests |
 | `cli/cloisters.clj` | the babashka CLI, one file |

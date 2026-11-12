@@ -18,6 +18,7 @@ API, MCP and the web UI over one core and one SQLite store; a separate babashka 
 | `build.clj` | tools.build: the daemon uberjar |
 | `conformance/` | MCP conformance expected-failures baselines, one per protocol revision |
 | `scripts/conformance.sh` | the conformance gate: runs the uberjar under a scratch home, both revisions |
+| `scripts/cli-gate.sh` | the CLI gate: `cloisters search` under 100 ms (hyperfine), then the daemon subcommands against the uberjar |
 | `package.json` | node tooling for CI only: the MCP conformance suite (jsdom from M6) |
 
 ## Commands
@@ -29,9 +30,10 @@ clojure -M:test          # test-runner
 clojure -T:build uber    # target/cloisters-daemon.jar
 clojure -M:run           # the daemon from source
 scripts/conformance.sh   # MCP conformance at both revisions, after `npm ci` and the uberjar
+scripts/cli-gate.sh      # the CLI's 100 ms gate and daemon subcommands, after the uberjar
 ```
 
-CI runs lint, format check, tests, the uberjar, MCP conformance and a CLI load check on `ubuntu-latest` and
+CI runs lint, format check, tests, the uberjar, MCP conformance and the CLI gate on `ubuntu-latest` and
 `macos-latest`. Run all of them before pushing.
 
 ## Clojure conventions
@@ -51,6 +53,8 @@ CI runs lint, format check, tests, the uberjar, MCP conformance and a CLI load c
   requests and prints the daemon's own text rendering.
 - The CLI uses only what babashka bundles (`babashka.http-client`, cheshire, `babashka.cli`, `babashka.fs`,
   `babashka.process`). A library loaded from source would be interpreted on every start and break the 100 ms gate.
+  The CLI can't load on the JVM, so `cli_test.clj` runs it as a process (`bb cli/cloisters.clj`) against a daemon
+  served in the test JVM, with `VISUAL` set to a script for the editor flow. Never let a test install a service.
 - Pin every version exactly (`deps.edn`, `mise.toml`, `package.json`). Check versions against Maven Central or
   Clojars metadata and release notes, not docs pages.
 - Write malli schemas with `mu/merge`, not `:merge`. Write titles as a single `:re`, not
