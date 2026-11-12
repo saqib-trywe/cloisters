@@ -1,3 +1,5 @@
+> Superseded at the dogfood point by CLO-6; edit the page.
+
 # Hand-roll MCP as a Ring handler instead of adopting a library
 
 Status: accepted, 2026-10-25.

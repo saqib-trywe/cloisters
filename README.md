@@ -11,12 +11,15 @@ daemon's HTTP API.
 - Issues and pages share one id sequence per project, so `CLO-7` names exactly one thing. Writing an id in prose
   creates a mention, and the thing it names gains a backlink.
 
-The vocabulary is defined in [CONTEXT.md](CONTEXT.md). Decisions live in [docs/adr/](docs/adr/) and the closed tickets
-in [.wayfinder/tickets/](.wayfinder/tickets/).
+cloisters tracks its own build. Since the dogfood point the vocabulary, decisions and build plan are pages in
+cloisters' own project `CLO` (*Context* CLO-4, *Decisions* CLO-5, *Build plan* CLO-7), and the milestones are issues
+under the map CLO-1. [CONTEXT.md](CONTEXT.md), [docs/adr/](docs/adr/) and [docs/build-plan.md](docs/build-plan.md)
+are frozen copies, and [docs/dogfood-export.jsonl](docs/dogfood-export.jsonl) is a readable export committed with
+each milestone. The planning history is in [.wayfinder/tickets/](.wayfinder/tickets/).
 
 ## Status
 
-The build follows [docs/build-plan.md](docs/build-plan.md), one milestone at a time. Only what is marked built works
+The build follows the *Build plan* page (frozen as [docs/build-plan.md](docs/build-plan.md)), one milestone at a time. Only what is marked built works
 today.
 
 | Milestone | What it delivers | State |
@@ -120,12 +123,13 @@ echo '{:port 7298}' > "$CLOISTERS_HOME/config/config.edn"
 clojure -M:run
 ```
 
-The development instance inside this repository uses `CLOISTERS_HOME=.cloisters-dev` (gitignored) on port 7228:
+The development instance inside this repository, which tracks cloisters' own build, uses
+`CLOISTERS_HOME=.cloisters-dev` (gitignored) on the default port 7227, running a jar copied there:
 
 ```sh
-mkdir -p .cloisters-dev/config
-echo '{:port 7228}' > .cloisters-dev/config/config.edn
-CLOISTERS_HOME=.cloisters-dev clojure -M:run
+export CLOISTERS_HOME="$PWD/.cloisters-dev"
+cp target/cloisters-daemon.jar .cloisters-dev/
+cloisters daemon run --jar .cloisters-dev/cloisters-daemon.jar
 ```
 
 ### Stopping
@@ -484,7 +488,9 @@ the test JVM. CI runs lint, the format check, the tests, the uberjar, the confor
 | `test/cloisters/` | tests |
 | `cli/cloisters.clj` | the babashka CLI, one file |
 | `build.clj` | tools.build: the daemon uberjar |
-| `docs/build-plan.md` | the milestone order |
+| `docs/build-plan.md`, `CONTEXT.md`, `docs/adr/` | frozen at the dogfood point; the pages CLO-7, CLO-4 and CLO-5 are current |
+| `docs/dogfood-export.jsonl` | the export of cloisters' own tracking, committed with each milestone |
+| `.cloisters`, `.mcp.json` | this repository's binding to project `CLO` |
 | `.wayfinder/`, `docs/inherited/` | planning history; never edited |
 
 Contributor conventions, including the Clojure style rules and shell quirks, are in [CLAUDE.md](CLAUDE.md). Each
