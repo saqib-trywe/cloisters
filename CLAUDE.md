@@ -3,10 +3,31 @@
 A Clojure rewrite of tikka (an issue tracker for humans and agents) plus a simple wiki. One daemon serves the HTTP
 API, MCP and the web UI over one core and one SQLite store; a separate babashka CLI talks to its HTTP API.
 
-- Vocabulary: [CONTEXT.md](CONTEXT.md). Decisions: `docs/adr/` and the closed tickets in `.wayfinder/tickets/`.
-- The build follows [docs/build-plan.md](docs/build-plan.md): one milestone per branch, each implementing the tickets
-  it names. Tickets are the spec; read them to the end, because *Amended by* notes override the text above them.
+- **cloisters tracks its own build** (project `CLO`, bound by `.cloisters` and `.mcp.json`), so work goes through the
+  `cloisters` MCP tools. Read vocabulary with `get_page CLO-4` (*Context*), decisions under `CLO-5` (*Decisions*,
+  one child page per ADR) and the plan with `get_page CLO-7` (*Build plan*). The map is the issue `CLO-1`; its
+  milestones are its children, and `search` with `ready parent:CLO-1` gives the frontier.
+- `CONTEXT.md`, `docs/adr/` and `docs/build-plan.md` are frozen at the dogfood point: edit the pages instead, and
+  write new ADRs as child pages of `CLO-5`.
+- The build follows the *Build plan* page: one milestone per branch, each implementing the tickets it names. Tickets
+  are the spec; read them to the end, because *Amended by* notes override the text above them.
 - `.wayfinder/` and `docs/inherited/` are history: never edit them.
+
+## The dev daemon
+
+The tracking daemon runs from `.cloisters-dev/` (gitignored) on port 7227, the default: it is Saqib's only cloisters.
+Start it from the repository root, from a jar copied there, because `clojure -T:build uber` deletes `target/`:
+
+```sh
+export CLOISTERS_HOME="$PWD/.cloisters-dev"
+cp target/cloisters-daemon.jar .cloisters-dev/
+cloisters daemon run --jar .cloisters-dev/cloisters-daemon.jar
+```
+
+Every CLI command against it needs that `CLOISTERS_HOME`. If MCP tools fail to connect, ask Saqib to start it; never
+start a second one. After each milestone merge: build the jar, `cloisters daemon stop`, copy the jar, start it again,
+then commit the export with the merge:
+`JAVA_HOME=$(mise where java) cloisters daemon export docs/dogfood-export.jsonl --jar .cloisters-dev/cloisters-daemon.jar`.
 
 ## Layout
 
@@ -78,8 +99,9 @@ CI runs lint, format check, tests, the uberjar, MCP conformance and the CLI gate
 - The walking skeleton (branch `prototype/walking-skeleton`, directory `skeleton/`) is reference only. Copy from it
   only after review, and only the vendored `htmx.min.js`, the jsdom shims in `scripts/ui-test.js`, `paths.clj`, and
   the lock and migration runner.
-- Run scratch daemons under `CLOISTERS_HOME` on a spare port, never on 7227 (a real install) or 7117 (tikka). Kill
-  them by the pid in their lock, never by pattern.
+- Run scratch daemons under a temporary `CLOISTERS_HOME` on a spare port, never on 7227 (the dev daemon, holding
+  cloisters' own tracking) or 7117 (tikka). Kill them by the pid in their lock, never by pattern. Never point a test
+  or scratch command at `.cloisters-dev`.
 
 ## Shell quirks
 
@@ -87,6 +109,8 @@ CI runs lint, format check, tests, the uberjar, MCP conformance and the CLI gate
 - `noclobber` is on: overwrite with `>|`, append to a new file with `>>|`.
 - `$VAR` does not word-split into separate arguments.
 - `cat` is aliased to `bat`: use `command cat`.
+- Outside mise's shell activation (as in an agent's shell), `JAVA_HOME` is the global JDK 17, which the CLI refuses
+  for `daemon export`, `restore` and `install`: run them as `JAVA_HOME=$(mise where java) cloisters daemon …`.
 - Babashka must be installed user-wide (`mise use -g babashka`), not only through this repo's `mise.toml`: the
   installed CLI's `#!/usr/bin/env bb` finds no version outside the repo. `bbin` copies the script, so reinstall after
   every CLI change.

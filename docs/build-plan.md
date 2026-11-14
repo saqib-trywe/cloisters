@@ -1,3 +1,5 @@
+> Superseded at the dogfood point by CLO-7; edit the page.
+
 # Build plan
 
 The planning map ([.wayfinder/MAP.md](../.wayfinder/MAP.md)) is complete: every decision lives in exactly one

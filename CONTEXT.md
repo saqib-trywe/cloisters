@@ -1,3 +1,5 @@
+> Superseded at the dogfood point by CLO-4; edit the page.
+
 # Context
 
 Domain vocabulary for cloisters. A glossary, not a spec: no implementation details, no
