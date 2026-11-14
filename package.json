@@ -1,7 +1,8 @@
 {
   "private": true,
-  "description": "Node tooling for cloisters' CI: the pinned MCP conformance suite (and jsdom from M6).",
+  "description": "Node tooling for cloisters' CI: the pinned MCP conformance suite, and jsdom for the UI check.",
   "devDependencies": {
-    "@modelcontextprotocol/conformance": "0.2.0-alpha.12"
+    "@modelcontextprotocol/conformance": "0.2.0-alpha.12",
+    "jsdom": "31.0.1"
   }
 }

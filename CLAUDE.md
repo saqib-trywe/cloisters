@@ -40,7 +40,9 @@ then commit the export with the merge:
 | `conformance/` | MCP conformance expected-failures baselines, one per protocol revision |
 | `scripts/conformance.sh` | the conformance gate: runs the uberjar under a scratch home, both revisions |
 | `scripts/cli-gate.sh` | the CLI gate: `cloisters search` under 100 ms (hyperfine), then the daemon subcommands against the uberjar |
-| `package.json` | node tooling for CI only: the MCP conformance suite (jsdom from M6) |
+| `scripts/ui-gate.sh`, `scripts/ui-test.js` | the UI gate: jsdom drives the web UI (htmx 4 with its shims, live updates) against the uberjar |
+| `resources/assets/` | the UI's hand-written `app.css` and `live.js`, and `htmx.min.js` 4.0.0, vendored verbatim |
+| `package.json` | node tooling for CI only: the MCP conformance suite and jsdom |
 
 ## Commands
 
@@ -52,9 +54,10 @@ clojure -T:build uber    # target/cloisters-daemon.jar
 clojure -M:run           # the daemon from source
 scripts/conformance.sh   # MCP conformance at both revisions, after `npm ci` and the uberjar
 scripts/cli-gate.sh      # the CLI's 100 ms gate and daemon subcommands, after the uberjar
+scripts/ui-gate.sh       # the jsdom UI check, after `npm ci` and the uberjar
 ```
 
-CI runs lint, format check, tests, the uberjar, MCP conformance and the CLI gate on `ubuntu-latest` and
+CI runs lint, format check, tests, the uberjar, MCP conformance, the CLI gate and the UI gate on `ubuntu-latest` and
 `macos-latest`. Run all of them before pushing.
 
 ## Clojure conventions
@@ -83,6 +86,12 @@ CI runs lint, format check, tests, the uberjar, MCP conformance and the CLI gate
 - Migrations are numbered `.sql` files in `resources/migrations/`, listed in `cloisters.store/migration-files`. They
   are append-only: never edit a merged one; add the next number.
 - In HoneySQL raw fragments, bind parameters with `[:lift x]`; `RETURNING` allocates ids.
+- The UI (`cloisters.ui`) is the third thin adapter: hiccup over the core, never the JSON API. Render prose only
+  through `markdown/render`, which escapes raw HTML and allows only `http`, `https`, `mailto` and site-relative URLs;
+  hiccup escapes everything else, so never emit `h/raw`. Live updates are `data-live="<id>"` elements re-fetched on
+  `cloisters:change` (see `assets/live.js`); add `data-guard` to anything holding a form. The htmx 4 under jsdom
+  needs the shims in `scripts/ui-test.js`, and htmx 4 swaps error responses, so fragments answer their refusal's
+  status.
 - Write `java.lang.ProcessHandle` and other newer `java.lang` classes fully qualified: Clojure 1.12 does not
   auto-import them.
 - The CLI sends `Host: 127.0.0.1:<port>` (the JDK HTTP client refuses to set `Host` otherwise); the localhost
