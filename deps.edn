@@ -9,6 +9,7 @@
         ring/ring-jetty-adapter {:mvn/version "1.15.6"}
         metosin/reitit-ring {:mvn/version "0.11.0"}
         metosin/jsonista {:mvn/version "1.0.2"}
+        hiccup/hiccup {:mvn/version "2.0.0"}
         io.github.nextjournal/markdown {:mvn/version "0.7.228"}
         io.github.java-diff-utils/java-diff-utils {:mvn/version "4.18"}
         org.slf4j/slf4j-simple {:mvn/version "2.0.20"}}

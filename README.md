@@ -30,11 +30,11 @@ today.
 | M3 Query grammar and search | the query language, full-text search, cursors | built |
 | M4 HTTP and MCP | the HTTP API and the MCP endpoint | built |
 | M5 CLI | every `cloisters` command, `daemon` subcommands, the stdio MCP proxy | built |
-| M6 Web UI | issue and page views, the page editor, live updates | planned |
+| M6 Web UI | issue and page views, the page editor, live updates | built |
 
-So today the daemon starts, takes its lock, opens and migrates the store, snapshots it, and serves the HTTP API and
-MCP on `127.0.0.1`; the `cloisters` CLI covers every operation, runs the daemon as a login service and binds
-repositories. There is no web UI yet.
+So today the daemon starts, takes its lock, opens and migrates the store, snapshots it, and serves the HTTP API, MCP
+and the web UI on `127.0.0.1`; the `cloisters` CLI covers every operation, runs the daemon as a login service and
+binds repositories.
 
 ## Requirements
 
@@ -43,7 +43,7 @@ repositories. There is no web UI yet.
 
   | Tool | Version | Used for |
   |---|---|---|
-  | JDK (Zulu) | 27.30.107.0 | the daemon |
+  | JDK (Zulu) | 21.54.109.0 | the daemon |
   | Clojure CLI | 1.12.6.1673 | building, testing and running the daemon from source |
   | babashka | 1.13.227 | the CLI |
   | node | 26.12.1 | CI tooling only (the MCP conformance suite) |
@@ -454,12 +454,37 @@ up a changed environment. Its output goes to `logs/daemon.log` (`cloisters daemo
 prints the unit without changing anything. `daemon uninstall` removes the unit and keeps the data and jar. Nothing
 starts the daemon implicitly.
 
-## Planned surfaces
+## The web UI
 
-The linked ticket is the spec.
+Open `http://127.0.0.1:7227/` (or the configured port). It is server-rendered HTML with htmx, served by the daemon
+itself: no build step and no external requests. The spec is
+[Choose the web UI approach](.wayfinder/tickets/T08-web-ui-approach.md).
 
-- **Web UI (M6)** at `http://127.0.0.1:<port>/`: server-rendered with htmx. See
-  [Choose the web UI approach](.wayfinder/tickets/T08-web-ui-approach.md).
+| Path | Shows |
+|---|---|
+| `/?q=<query>` | a search in the shared query grammar; `/` alone reopens your last query, or `ready` on a first visit |
+| `/projects` | each project with its open, ready and page counts, linking to its trees |
+| `/tree/CLO`, `/tree/CLO/pages` | a project's issue tree and page tree (`?archived=yes` shows archived pages) |
+| `/tree/CLO-5` | everything under one issue or page |
+| `/CLO-5` | the issue or page with that id: rendered body, edges, mentions, backlinks; an issue's comments and history |
+| `/CLO-5/edit`, `/new?parent=CLO-5` | the page editor: markdown with a live preview, and an edit summary |
+| `/CLO-5/history`, `/CLO-5/r3`, `/CLO-5/diff?from=2&to=5` | a page's revisions, one revision, and a side-by-side diff (default: the previous) |
+
+- **Scope is the query.** There is no project picker: `project:CLO` scopes a view, and the query lives only in the URL
+  and the search box, so any view is a link you can paste to an agent. "Recent changes" is
+  `kind:page sort:updated-desc`.
+- **Inline edits.** On an issue: comment, add or remove labels, close or reopen (with a comment), reassign (to
+  nobody, too), move up or down. On a page: move to a new parent, move up or down, archive or unarchive (with a
+  summary), restore a revision. Creating issues, editing their title or body, edges and claims stay in the CLI and
+  MCP. The UI's writes record `web`.
+- **Live.** The UI listens to the API's event stream. An issue or page you are reading refreshes in place; a form
+  you are typing in is left alone. Lists never reshuffle under you: they count updates in a bar instead.
+- **The editor never touches your text.** When someone else saves the page while you edit it, a banner names them
+  and links the diff. Saving always sends the version you loaded, so a stale save is refused: your text is kept, the
+  change underneath is shown, and you merge by hand and save again.
+- **Markdown** renders with the daemon's own parser, so the UI links exactly the mentions the daemon counts. Raw HTML
+  shows as text; only `http`, `https`, `mailto` and site-relative links and images render. A mention of a closed
+  issue is struck through, an archived page is muted and marked, and an id not created yet is muted.
 
 ## Development
 
@@ -471,19 +496,22 @@ clojure -T:build uber    # target/cloisters-daemon.jar
 clojure -M:run           # the daemon from source
 scripts/conformance.sh   # MCP conformance at both revisions, against the uberjar (needs `npm ci`)
 scripts/cli-gate.sh      # the CLI's 100 ms gate and daemon subcommands, against the uberjar (needs hyperfine)
+scripts/ui-gate.sh       # the jsdom UI check, against the uberjar (needs `npm ci`)
 ```
 
 The tests always run against real SQLite files in temporary directories, never a fake. The lock tests start the
 daemon in a separate JVM, because a file lock belongs to a process. The MCP tests validate every tool's result
 against the JSON Schema it declares. The CLI tests run `bb cli/cloisters.clj` as a process against a daemon served in
-the test JVM. CI runs lint, the format check, the tests, the uberjar, the conformance suite and the CLI gate on
-`ubuntu-latest` and `macos-latest`. Run all of them before pushing.
+the test JVM. The UI gate drives the real UI, htmx and live updates included, under jsdom against the uberjar
+([scripts/ui-test.js](scripts/ui-test.js)). CI runs lint, the format check, the tests, the uberjar, the conformance
+suite, the CLI gate and the UI gate on `ubuntu-latest` and `macos-latest`. Run all of them before pushing.
 
 | Path | Is |
 |---|---|
-| `src/cloisters/` | the daemon: `paths`, `lock`, `store`, `backup`, `restore` and `main`; the core (`core`, `contract`, `issues`, `pages`, `projects`, `events`, `query`, `search`); the adapters (`http`, `mcp`) and the shared `text` rendering |
+| `src/cloisters/` | the daemon: `paths`, `lock`, `store`, `backup`, `restore` and `main`; the core (`core`, `contract`, `issues`, `pages`, `projects`, `events`, `query`, `search`); the adapters (`http`, `mcp`, `ui`), the shared `text` rendering, `markdown` (mentions and the safe renderer) and `diff` |
+| `resources/assets/` | the UI's `app.css`, `live.js` and the vendored `htmx.min.js` (4.0.0) |
 | `conformance/` | the MCP conformance suite's expected-failures baselines, one per revision |
-| `scripts/` | `conformance.sh` and `cli-gate.sh`, the CI gates run against the uberjar |
+| `scripts/` | `conformance.sh`, `cli-gate.sh` and `ui-gate.sh` (with `ui-test.js`), the CI gates run against the uberjar |
 | `resources/migrations/` | numbered schema migrations; append-only once merged |
 | `test/cloisters/` | tests |
 | `cli/cloisters.clj` | the babashka CLI, one file |

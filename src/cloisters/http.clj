@@ -2,7 +2,7 @@
   "The HTTP adapter and the server: Ring on Jetty 12, reitit for routing only, one JSON mapper.
 
   Routes, in order: /api/… (REST for CRUD, POST intent actions), /mcp, /assets/… (an unknown asset is 404), then
-  the UI's routes (from M6). The adapter only turns requests into argument maps and results into responses: the core
+  the UI's (cloisters.ui), which answer HTML. The adapter only turns requests into argument maps and results into responses: the core
   validates, so a bad argument is the same invalid_argument here as anywhere.
 
   - JSON by default; Accept: text/plain returns the text rendering MCP's text block carries, and refusals as text led
@@ -21,6 +21,7 @@
             [cloisters.projects :as projects]
             [cloisters.search :as search]
             [cloisters.text :as text]
+            [cloisters.ui :as ui]
             [clojure.string :as str]
             [reitit.ring :as ring]
             [ring.adapter.jetty :as jetty]
@@ -237,7 +238,8 @@
         ctx (assoc ctx :notify notify!)
         e (fn [op f args-of & opts] (both (apply endpoint ctx op f args-of opts)))
         action (fn [op f] {:post (e op f body+id)})
-        mcp-handler (mcp/handler ctx (atom {}))]
+        mcp-handler (mcp/handler ctx (atom {}))
+        ui-handler (ui/handler ctx status-of)]
     {:notify notify!
      :handler
      (-> (ring/ring-handler
@@ -282,6 +284,7 @@
             ["/mcp" {:handler (both (fn [request] (mcp-handler request)))}]])
           (ring/routes
            (ring/create-resource-handler {:path "/assets" :root "assets"})
+           (both (guarded ui-handler))
            (ring/create-default-handler {:not-found (both not-found)
                                          :method-not-allowed (both method-not-allowed)
                                          :not-acceptable (both not-found)})))

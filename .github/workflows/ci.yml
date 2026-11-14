@@ -21,7 +21,7 @@ jobs:
             ~/.m2/repository
             ~/.gitlibs
           key: deps-${{ runner.os }}-${{ hashFiles('deps.edn') }}
-      - name: Node tooling (the pinned MCP conformance suite)
+      - name: Node tooling (the pinned MCP conformance suite, and jsdom for the UI check)
         run: npm ci && npx conformance --version
       - name: Lint
         run: clojure -M:lint
@@ -35,3 +35,5 @@ jobs:
         run: scripts/conformance.sh
       - name: CLI gate (cloisters search under 100 ms at the median; daemon run, export, stop and restore)
         run: scripts/cli-gate.sh
+      - name: UI gate (jsdom drives the web UI with htmx 4 and live updates against the uberjar)
+        run: scripts/ui-gate.sh
