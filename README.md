@@ -43,7 +43,7 @@ binds repositories.
 
   | Tool | Version | Used for |
   |---|---|---|
-  | JDK (Zulu) | 27.30.107.0 | the daemon |
+  | JDK (Zulu) | 21.54.109.0 | the daemon |
   | Clojure CLI | 1.12.6.1673 | building, testing and running the daemon from source |
   | babashka | 1.13.227 | the CLI |
   | node | 26.12.1 | CI tooling only (the MCP conformance suite) |
