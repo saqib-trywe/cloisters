@@ -75,7 +75,17 @@ function eventSourceFor(w) {
   };
 }
 
-const requests = [];
+let inflight = 0;
+
+// Waits until htmx has had no request in flight for a while: the item a write refreshes, then the live refresh its
+// own event triggers, so the next step never holds an element that is about to be swapped out.
+async function settle(quiet = 400) {
+  let since = Date.now();
+  while (Date.now() - since < quiet) {
+    if (inflight > 0) since = Date.now();
+    await sleep(25);
+  }
+}
 
 // A page with its scripts running: htmx and live.js, with the shims htmx 4 needs under jsdom.
 async function live(path) {
@@ -94,11 +104,15 @@ async function live(path) {
       // htmx's fetch, bridged to Node's: bodies and headers cross realms as plain values
       w.fetch = async (u, o = {}) => {
         const { signal, body, headers, ...rest } = o;
-        requests.push(`${o.method || "GET"} ${u}`);
         const h = headers ? Object.fromEntries(headers.entries ? headers.entries() : Object.entries(headers)) : {};
         const b = body && body.entries ? new URLSearchParams([...body.entries()]) : body;
-        const r = await fetch(new URL(u, B), { ...rest, headers: h, body: b, redirect: "manual" });
-        return new w.Response(await r.text(), { status: r.status, headers: Object.fromEntries(r.headers) });
+        inflight++;
+        try {
+          const r = await fetch(new URL(u, B), { ...rest, headers: h, body: b, redirect: "manual" });
+          return new w.Response(await r.text(), { status: r.status, headers: Object.fromEntries(r.headers) });
+        } finally {
+          inflight--;
+        }
       };
     },
   });
@@ -183,22 +197,27 @@ const text = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
 
     console.log("=== inline edits");
     const form = (action) => d.querySelector(`#actions form[action="/CLO-1/${action}"]`);
+    await settle();
     form("comment").querySelector("textarea").value = "Looks right to CLO-5.";
     form("comment").requestSubmit();
     await until(() => text(d.querySelector("ol.comments")).includes("Looks right to CLO-5."), "a comment posts and shows");
     check(d.querySelector('ol.comments a[href="/CLO-5"]') !== null, "the comment renders its mention");
+    await settle();
     const add = d.querySelector('#actions input[name="add"]');
     add.value = "ux";
     add.form.requestSubmit();
     await until(() => [...d.querySelectorAll("#view .label")].map(text).includes("ux"), "a label is added");
+    await settle();
     const reassign = form("reassign");
     reassign.querySelector('input[name="from"]').value = "someone-else";
     reassign.querySelector('input[name="to"]').value = "saqib";
     reassign.requestSubmit();
     await until(() => text(d.querySelector("#item .notice")).includes("not_holder"), "a refusal shows in the item, named");
+    await settle();
     form("reassign").querySelector('input[name="to"]').value = "saqib";
     form("reassign").requestSubmit();
     await until(() => text(d.querySelector("#view .assignee")) === "saqib", "reassigning to a person");
+    await settle();
     const feed = await (await fetch(B + "/api/events?after=0&limit=200")).json();
     check(feed.events.filter((e) => e.actor === "web").length === 3, "UI writes record web");
 
@@ -207,6 +226,7 @@ const text = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
     await api("PATCH", "/api/issues/CLO-1", { expected_version: v, body: "Rewritten underneath, see CLO-6." });
     await until(() => text(d.querySelector("#view .prose")).includes("Rewritten underneath"), "the issue view refreshes in place");
     check(d.querySelector('#view .prose a[href="/CLO-6"]') !== null, "with mentions linked");
+    await settle();
     form("comment").querySelector("textarea").value = "half-typed";
     await api("PATCH", "/api/issues/CLO-1", { labels_add: ["live"] });
     await until(() => [...d.querySelectorAll("#view .label")].map(text).includes("live"), "a related write refreshes the view");
@@ -251,10 +271,12 @@ const text = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
     w.close();
 
     const c = await live("/CLO-6");
+    await settle();
     const archive = c.document.querySelector('#actions form[action="/CLO-6/archive"]');
     archive.querySelector('input[name="summary"]').value = "done with it";
     archive.requestSubmit();
     await until(() => text(c.document.querySelector("#view h1")).includes("archived"), "archiving from the page view");
+    await settle();
     const un = c.document.querySelector('#actions form[action="/CLO-6/unarchive"]');
     check(un !== null, "which then offers unarchive");
     c.close();
