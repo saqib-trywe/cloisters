@@ -126,6 +126,17 @@
           (let [bad (call h :get "/more" :query {:q "bogus:1" :cursor cursor})]
             (is (= 400 (:status bad)))
             (is (str/includes? (:body bad) "invalid_query")))))
+      (testing "malformed numeric query parameters are refused, not silently defaulted"
+        (let [d (call h :get (str "/" page "/diff") :query {:from "abc"})]
+          (is (= 400 (:status d)))
+          (is (str/includes? (:body d) "invalid_argument")))
+        (let [b (call h :get (str "/" page "/banner") :query {:version "abc"})]
+          (is (= 400 (:status b)))
+          (is (str/starts-with? (get-in b [:headers "Content-Type"]) "text/html"))
+          (is (str/includes? (:body b) "invalid_argument"))
+          (is (not (str/includes? (:body b) "<!doctype html>"))))
+        (testing "valid parameters still work"
+          (is (= 200 (:status (call h :get (str "/" page "/banner") :query {:version 1}))))))
       (testing "the UI is localhost-hardened like the API"
         (is (= 403 (:status (call h :get "/" :headers {"host" "evil.example:7290"}))))
         (is (= 403 (:status (post h (str "/" issue "/comment") {:comment "x"} :headers {"origin" "http://evil"})))))
