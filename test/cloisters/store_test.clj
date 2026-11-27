@@ -90,6 +90,25 @@
                          (mapv deref))]
         (is (= (range 1 41) (sort numbers)))))))
 
+(deftest close-refuses-while-a-write-is-in-flight
+  (let [home (fx/tmp-dir)
+        started (promise)
+        release (promise)]
+    (with-store [st (fx/open home)]
+      (store/write! st #(fx/project! % "CLO"))
+      (let [write (future (store/write! st (fn [tx]
+                                             (deliver started true)
+                                             @release
+                                             (fx/issue! tx "CLO" "committed anyway"))))]
+        @started
+        (try
+          (is (thrown-with-msg? clojure.lang.ExceptionInfo #"write is still in progress" (store/close st 50)))
+          (testing "a refused close leaves the read pool open"
+            (is (= 1 (-> (jdbc/execute-one! (store/reads st) ["select 1 as n"]) :n))))
+          (finally (deliver release true)))
+        (testing "the write that was in flight still commits"
+          (is (= 1 @write)))))))
+
 (deftest schema-constraints
   (let [home (fx/tmp-dir)]
     (with-store [st (fx/open home)]

@@ -41,7 +41,10 @@
                       (Thread. (fn []
                                  (http/stop! server)
                                  (.shutdownNow daily)
-                                 (store/close st)
+                                 (try (store/close st)
+                                      (catch Exception e
+                                        (binding [*out* *err*]
+                                          (println "cloisters daemon:" (ex-message e)))))
                                  (lock/release! held))))
     (println "cloisters daemon" version "on" (str "http://127.0.0.1:" port) "store" (str (:file st))
              (str "(schema v" (:version st) ")"))

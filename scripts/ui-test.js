@@ -354,6 +354,29 @@ const text = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
     check(ok.status === 303 && ok.headers.get("location") === "/CLO-8", "creating a child page lands on it");
   }
 
+  console.log("=== load more");
+  {
+    for (let i = 0; i < 51; i++) await api("POST", "/api/issues", { title: `Paged ${i}`, labels: ["paging"] });
+    const w = await live("/?q=" + encodeURIComponent("label:paging"));
+    const d = w.document;
+    const button = () => d.querySelector("tr.more button");
+    check(button() !== null, "a query with more than a page offers Load more");
+    check(d.querySelectorAll("td.id").length === 50, "the first page holds 50 rows");
+    button().click();
+    await until(() => d.querySelectorAll("td.id").length === 51, "Load more appends the next page");
+    check(button() === null, "and the button goes when the rows run out");
+    w.close();
+
+    const s = await live("/?q=" + encodeURIComponent("label:paging"));
+    const stale = s.document.querySelector("tr.more button");
+    stale.setAttribute("hx-get", "/more?q=" + encodeURIComponent("label:paging") + "&cursor=stale");
+    stale.click();
+    await until(() => text(s.document.querySelector("tr.more")).includes("invalid_argument"),
+      "a refused page shows its notice in the table");
+    check(s.document.querySelector("tr.more .notice") !== null, "as an HTML row, not a JSON blob or whole page");
+    s.close();
+  }
+
   console.log("=== missing items");
   {
     const m = await doc("/CLO-99");

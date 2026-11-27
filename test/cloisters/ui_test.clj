@@ -9,6 +9,7 @@
             [cloisters.issues :as issues]
             [cloisters.markdown :as markdown]
             [cloisters.pages :as pages]
+            [cloisters.search :as search]
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
             [hiccup2.core :as h]))
@@ -110,6 +111,21 @@
           (is (= "/?q=kind%3Apage"
                  (get-in (call h :get "/" :headers {"cookie" (first (str/split (get-in r [:headers "Set-Cookie"]) #";"))})
                          [:headers "Location"])))))
+      (testing "/more pages through rows, and refuses in HTML at its status"
+        (let [cursor (:next-cursor (search/search c {:query "" :limit 1}))
+              r (call h :get "/more" :query {:q "" :cursor cursor})]
+          (is (some? cursor))
+          (is (= 200 (:status r)))
+          (is (str/starts-with? (:body r) "<tr"))
+          (is (str/includes? (:body r) "<td class=\"id\""))
+          (let [bad (call h :get "/more" :query {:q "" :cursor "nonsense"})]
+            (is (= 400 (:status bad)))
+            (is (str/starts-with? (get-in bad [:headers "Content-Type"]) "text/html"))
+            (is (str/starts-with? (:body bad) "<tr"))
+            (is (str/includes? (:body bad) "invalid_argument")))
+          (let [bad (call h :get "/more" :query {:q "bogus:1" :cursor cursor})]
+            (is (= 400 (:status bad)))
+            (is (str/includes? (:body bad) "invalid_query")))))
       (testing "the UI is localhost-hardened like the API"
         (is (= 403 (:status (call h :get "/" :headers {"host" "evil.example:7290"}))))
         (is (= 403 (:status (post h (str "/" issue "/comment") {:comment "x"} :headers {"origin" "http://evil"})))))
