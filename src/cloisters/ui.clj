@@ -468,6 +468,13 @@
 
 (defn- blank->nil [s] (when-not (str/blank? s) s))
 
+(defn- query-long
+  "The numeric query parameter k as a long, or nil when absent. A present value that is not a number is refused."
+  [request k]
+  (when-let [s (get-in request [:query-params k])]
+    (or (parse-long s)
+        (core/fail "invalid_argument" (str "The " k " parameter must be a number.") :argument k :value s))))
+
 (defn- edit!
   "Runs action's write for the item at id with the form's params."
   [ctx id action params]
@@ -584,10 +591,11 @@
      (diff-table (:body a) (:body b)))))
 
 (defn- diff-page [ctx id request]
-  (let [num #(some-> (get-in request [:query-params %]) parse-long)
+  (let [from-param (query-long request "from")
+        to-param (query-long request "to")
         {:keys [from to]} (pages/diff-page ctx (cond-> {:id id}
-                                                 (num "from") (assoc :from (num "from"))
-                                                 (num "to") (assoc :to (num "to"))))]
+                                                 from-param (assoc :from from-param)
+                                                 to-param (assoc :to to-param)))]
     (layout {:title (str id " r" from "→r" to)}
             [:h1 "Changes to " [:a {:href (str "/" id)} id] ": "
              (if (pos? from) [:a {:href (str "/" id "/r" from)} (str "r" from)] "nothing")
@@ -669,15 +677,18 @@
                                               :refusal refusal)))))))
 
 (defn- banner
-  "Above the editor: who changed the page since version, linking the diff, or nothing."
-  [ctx id request]
-  (let [loaded (some-> (get-in request [:query-params "version"]) parse-long)
-        {:keys [version revisions]} (pages/get-page ctx {:id id :include ["revisions"]})
-        by (->> revisions (filter #(> (:revision %) (or loaded 0))) (map :actor) distinct)]
-    (respond 200 (if (and loaded (> version loaded))
-                   [:p.banner "Changed since you opened it, by " (str/join ", " by) ": now r" version ". "
-                    [:a {:href (str "/" id "/diff?from=" loaded "&to=" version) :target "_blank"} "See what changed"]]
-                   ""))))
+  "Above the editor: who changed the page since version, linking the diff, or nothing. A malformed version is a
+  notice fragment at its status, so htmx swaps it into the editor rather than a whole page."
+  [ctx status-of id request]
+  (let [{:keys [refusal loaded]} (refusing {:loaded (query-long request "version")})]
+    (if refusal
+      (respond (status-of (:code refusal)) (notice refusal))
+      (let [{:keys [version revisions]} (pages/get-page ctx {:id id :include ["revisions"]})
+            by (->> revisions (filter #(> (:revision %) (or loaded 0))) (map :actor) distinct)]
+        (respond 200 (if (and loaded (> version loaded))
+                       [:p.banner "Changed since you opened it, by " (str/join ", " by) ": now r" version ". "
+                        [:a {:href (str "/" id "/diff?from=" loaded "&to=" version) :target "_blank"} "See what changed"]]
+                       ""))))))
 
 (defn- new-page-form [ctx request]
   (let [{:strs [project parent]} (:query-params request)
@@ -731,7 +742,7 @@
       (and get? (= "diff" sub)) (respond 200 (diff-page ctx id request))
       (and get? (= "edit" sub)) (respond 200 (edit-page ctx id))
       (and post? (= "edit" sub)) (save ctx request id)
-      (and get? (= "banner" sub)) (banner ctx id request)
+      (and get? (= "banner" sub)) (banner ctx status-of id request)
       (and post? (= "restore" sub)) (restore ctx request id)
       (and post? (actions sub)) (inline-edit ctx status-of request id sub)
       :else nil)))

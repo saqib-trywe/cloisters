@@ -263,7 +263,11 @@
                              (remove current-blockers)
                              vec)
              _ (doseq [b block-adds] (check-blocker! tx ref i b))
-             block-removes (->> blocked-by-remove (map core/parse-id) distinct (filter current-blockers) vec)
+             block-removes (->> blocked-by-remove
+                                (map #(core/require-kind tx % "issue"))
+                                distinct
+                                (filter current-blockers)
+                                vec)
              rank (place tx project ref args)
              rank' (or rank (:rank i))
              content? (or (not= title' (:title i)) (not= body' (:body i)) (seq adds) (seq removes))

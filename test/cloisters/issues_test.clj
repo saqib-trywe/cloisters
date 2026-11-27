@@ -3,6 +3,7 @@
             [cloisters.events :as events]
             [cloisters.fixtures :as fx :refer [rejection with-ctx]]
             [cloisters.issues :as issues]
+            [cloisters.pages :as pages]
             [cloisters.projects :as projects]))
 
 (defn- new! [c title & {:as args}]
@@ -103,6 +104,20 @@
           (issues/update-issue c {:id done :blocked-by-add [later]})
           (is (= {:error "reopen_blocked" :id later :dependents [{:id done :title "Done"}]}
                  (rejection #(issues/reopen-issue c {:id later :comment "again"})))))))))
+
+(deftest blocked-by-remove-validates-the-id
+  (with-ctx [c (fx/ctx)]
+    (let [blocker (new! c "Blocker")
+          blocked (new! c "Blocked" :blocked-by [blocker])
+          page (:id (pages/create-page c {:title "Page"}))]
+      (testing "removing a blocker validates the id like adding one"
+        (is (= {:error "wrong_kind" :id page :kind "page"}
+               (rejection #(issues/update-issue c {:id blocked :blocked-by-remove [page]}))))
+        (is (= "not_found" (:error (rejection #(issues/update-issue c {:id blocked :blocked-by-remove ["CLO-99"]})))))
+        (is (= [blocker] (mapv :id (:blocked-by (get-issue c blocked)))) "a refused removal changes nothing"))
+      (testing "a real removal still works"
+        (issues/update-issue c {:id blocked :blocked-by-remove [blocker]})
+        (is (= [] (:blocked-by (get-issue c blocked))))))))
 
 (deftest invariant-acyclic
   (with-ctx [c (fx/ctx)]
