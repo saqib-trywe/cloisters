@@ -265,10 +265,18 @@
   An issue-only filter implies kind:issue, and archived: implies kind:page. Returns :clauses (effective), :kinds and
   :effective (the effective query string)."
   [clauses bound-project]
-  (let [explicit (some #(= "kind" (:name %)) clauses)
+  (let [kind-clauses (filterv #(= "kind" (:name %)) clauses)
+        explicit (seq kind-clauses)
         by-kind (group-by applies (remove #(= "kind" (:name %)) clauses))
         [issue-only page-only] [(first (by-kind "issue")) (first (by-kind "page"))]
         allowed (allowed-kinds clauses)]
+    (when (and explicit (empty? allowed))
+      (let [both (str "kind:" (str/join "," (sort kinds)))]
+        (refuse (print-clause (peek kind-clauses))
+                (str "No kind is left after "
+                     (str/join " and " (map #(str "`" (print-clause %) "`") kind-clauses))
+                     "; use `" both "` to include both.")
+                [both])))
     (when (and issue-only page-only)
       (refuse (print-clause page-only)
               (str "`" (:name page-only) ":` applies only to pages, and `" (:name issue-only)

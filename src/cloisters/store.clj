@@ -106,13 +106,17 @@
                                  :connectionInitSql "PRAGMA query_only = true"})})))
 
 (defn close
-  "Closes the read pool, lets an in-flight write finish for up to 5 s, checkpoints the WAL and closes the writer."
-  [{:keys [^Connection writer ^ReentrantLock write-lock ^HikariDataSource reads]}]
-  (.close reads)
-  (let [locked (.tryLock write-lock 5 TimeUnit/SECONDS)]
-    (try (jdbc/execute! writer ["PRAGMA wal_checkpoint(TRUNCATE)"])
-         (.close writer)
-         (finally (when locked (.unlock write-lock))))))
+  "Waits up to timeout-ms (5 s by default) for an in-flight write, then closes the read pool, checkpoints the WAL and
+  closes the writer. Refuses without touching either connection when the lock is still held: closing under a live
+  write could abort it, so the caller decides how long to wait before giving up on a clean close."
+  ([store] (close store 5000))
+  ([{:keys [^Connection writer ^ReentrantLock write-lock ^HikariDataSource reads]} timeout-ms]
+   (when-not (.tryLock write-lock timeout-ms TimeUnit/MILLISECONDS)
+     (throw (ex-info "a write is still in progress; the store was left open" {:timeout-ms timeout-ms})))
+   (try (.close reads)
+        (jdbc/execute! writer ["PRAGMA wal_checkpoint(TRUNCATE)"])
+        (.close writer)
+        (finally (.unlock write-lock)))))
 
 ;; ---------------------------------------------------------------- reads and writes
 

@@ -211,9 +211,15 @@
                "Set-Cookie" (str "q=" (enc q) "; Path=/; SameSite=Strict; Max-Age=31536000")))
     (see-other (str "/?q=" (enc (or (cookie-query request) "ready"))))))
 
-(defn- more [ctx request]
-  (let [{:strs [q cursor]} (:query-params request)]
-    (respond 200 (list* (rows-and-more q (search/search ctx {:query q :cursor cursor}))))))
+(defn- more
+  "The next page as rows for the Load more row to swap into. A refusal is a notice in a row at its status, so htmx
+  swaps a fragment into the table instead of a whole page (or a JSON body from the outer guard)."
+  [ctx status-of request]
+  (let [{:strs [q cursor]} (:query-params request)
+        {:keys [refusal] :as found} (refusing (search/search ctx {:query q :cursor cursor}))]
+    (if refusal
+      (respond (status-of (:code refusal)) [:tr.more [:td {:colspan 4} (notice refusal)]])
+      (respond 200 (list* (rows-and-more q found))))))
 
 ;; ---------------------------------------------------------------- projects
 
@@ -709,7 +715,7 @@
         [_ tree] (re-matches #"/tree/(.+)" uri)]
     (cond
       (and get? (= "/" uri)) (home ctx status-of request)
-      (and get? (= "/more" uri)) (more ctx request)
+      (and get? (= "/more" uri)) (more ctx status-of request)
       (and get? (= "/projects" uri)) (respond 200 (projects-page ctx))
       (and post? (= "/preview" uri)) (respond 200 (prose ctx (crlf->lf (get-in request [:params "body"]))))
       (and get? (= "/new" uri)) (respond 200 (new-page-form ctx request))

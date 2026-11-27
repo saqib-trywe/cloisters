@@ -70,4 +70,10 @@
       (is (= "ready" (:token (refusal "-kind:issue ready"))))
       (is (= "archived:any" (:token (refusal "kind:issue archived:any"))))
       (is (= "archived:yes" (:token (refusal "status:open archived:yes"))))
-      (is (= "sort:closed" (:token (refusal "kind:page sort:closed")))))))
+      (is (= "sort:closed" (:token (refusal "kind:page sort:closed"))))
+      (is (= {:error "invalid_query"
+              :token "kind:page"
+              :reason "No kind is left after `kind:issue` and `kind:page`; use `kind:issue,page` to include both."
+              :suggestions ["kind:issue,page"]}
+             (rejection #(query/scope (query/parse "kind:issue kind:page") nil))))
+      (is (= "-kind:page" (:token (refusal "-kind:issue -kind:page")))))))
