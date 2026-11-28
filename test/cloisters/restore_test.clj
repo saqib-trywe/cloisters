@@ -57,6 +57,36 @@
       (store/close (fx/open home))
       (is (nil? (lock/holder (paths/lock-file dirs)))))))
 
+(deftest restore-refuses-occupied-destinations-and-rolls-back
+  (let [home (fx/tmp-dir)
+        dirs (paths/dirs {"CLOISTERS_HOME" (str home)} "/nowhere")
+        snap (io/file (fx/backups home) "daily-2026-11-08.db")
+        aside (io/file (fx/backups home) "pre-restore-20261109T100000.000Z.db")]
+    (let [st (fx/open home)]
+      (store/write! st #(fx/project! % "CLO"))
+      (store/daily-snapshot! st)
+      (.renameTo (first (.listFiles (fx/backups home))) snap)
+      (store/write! st #(fx/project! % "LATER"))
+      (store/close st))
+    (testing "an occupied aside destination is refused before anything moves"
+      (.mkdirs aside)
+      (is (str/includes? (refusal #(restore/restore! dirs (str snap) now)) "already exists"))
+      (is (= ["CLO" "LATER"] (keys-in (fx/store-file home))))
+      (.delete aside))
+    (testing "a failure moving the snapshot into place leaves the store as it was"
+      (let [real-move @#'restore/move!
+            target (fx/store-file home)
+            failed (atom false)]
+        (is (thrown? Exception
+                     (with-redefs-fn {#'restore/move! (fn [from to]
+                                                        (if (and (= (str target) (str to))
+                                                                 (compare-and-set! failed false true))
+                                                          (throw (ex-info "injected move failure" {}))
+                                                          (real-move from to)))}
+                       (fn [] (restore/restore! dirs (str snap) now)))))
+        (is (= ["CLO" "LATER"] (keys-in (fx/store-file home))))
+        (is (false? (.exists (io/file (str target ".restoring")))))))))
+
 (deftest exporting-offline
   (let [home (fx/tmp-dir)
         dirs (paths/dirs {"CLOISTERS_HOME" (str home)} "/nowhere")

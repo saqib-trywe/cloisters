@@ -16,16 +16,48 @@ echo "{:port $port}" > "$home/config/config.edn"
 export CLOISTERS_HOME="$home"
 unset VISUAL EDITOR
 
+assert-our-daemon() {
+  local lock="$home/data/daemon.lock"
+  local lock_pid
+  if [ ! -f "$lock" ]; then
+    echo "FAIL: no daemon lock at $lock" >&2
+    return 1
+  fi
+  lock_pid="$(sed -nE 's/^\{:pid[[:space:]]+([0-9]+)[,}].*/\1/p' "$lock")"
+  if [ "$lock_pid" != "$pid" ]; then
+    echo "FAIL: $lock names pid ${lock_pid:-none}, not the daemon we started (pid $pid)" >&2
+    return 1
+  fi
+  if ! kill -0 "$pid" 2>/dev/null; then
+    echo "FAIL: the daemon we started (pid $pid) is no longer running" >&2
+    return 1
+  fi
+}
+
 start() {
+  # A busy port would let the new daemon exit while `daemon status` answers a foreign store.
+  if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
+    echo "FAIL: port $port is already in use; pass a spare port: $0 [port]" >&2
+    exit 1
+  fi
   "$cli" daemon run --jar "$jar" >> "$home/daemon.log" 2>&1 &
   pid=$!
+  ready=false
   for _ in $(seq 1 60); do
-    if "$cli" daemon status > /dev/null 2>&1; then return 0; fi
-    if ! kill -0 "$pid" 2>/dev/null; then cat "$home/daemon.log"; exit 1; fi
+    if "$cli" daemon status > /dev/null 2>&1; then ready=true; break; fi
+    if ! kill -0 "$pid" 2>/dev/null; then
+      cat "$home/daemon.log"
+      echo "FAIL: the daemon (pid $pid) exited before answering on port $port" >&2
+      exit 1
+    fi
     sleep 1
   done
-  cat "$home/daemon.log"
-  exit 1
+  if [ "$ready" != true ]; then
+    cat "$home/daemon.log"
+    echo "FAIL: the daemon did not answer on port $port within 60 s" >&2
+    exit 1
+  fi
+  assert-our-daemon || { cat "$home/daemon.log"; exit 1; }
 }
 pid=""
 trap 'if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi' EXIT

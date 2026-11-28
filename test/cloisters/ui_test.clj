@@ -57,6 +57,11 @@
       (let [s (html "[see CLO-1](/CLO-2)" refer)]
         (is (= 1 (count (re-seq #"<a " s))))
         (is (str/includes? s "class=\"ref archived\""))))
+    (testing "an external link to a /KEY-N path is still a mention, but not an internal ref"
+      (let [s (html "[CLO-1](https://evil.example/CLO-1)" refer)]
+        (is (str/includes? s "href=\"https://evil.example/CLO-1\""))
+        (is (not (str/includes? s "class=\"ref"))))
+      (is (= [["CLO" 1]] (markdown/mentions "[CLO-1](https://evil.example/CLO-1)"))))
     (testing "the renderer links exactly what detection counts"
       (let [text "CLO-1 `CLO-9` [x](/CLO-2) ![CLO-9](/i.png) <i>CLO-9</i>"
             rendered (html text refer)
@@ -137,34 +142,46 @@
           (is (not (str/includes? (:body b) "<!doctype html>"))))
         (testing "valid parameters still work"
           (is (= 200 (:status (call h :get (str "/" page "/banner") :query {:version 1}))))))
-      (testing "the UI is localhost-hardened like the API"
-        (is (= 403 (:status (call h :get "/" :headers {"host" "evil.example:7290"}))))
-        (is (= 403 (:status (post h (str "/" issue "/comment") {:comment "x"} :headers {"origin" "http://evil"})))))
-      (testing "an inline edit answers the refreshed item, recording web"
-        (let [r (post h (str "/" issue "/comment") {:comment "Noted CLO-2."} :htmx true)]
-          (is (= 200 (:status r)))
-          (is (str/starts-with? (:body r) "<div id=\"item\">"))
-          (is (str/includes? (:body r) "Noted <a class=\"ref\" href=\"/CLO-2\"")))
-        (is (= "web" (:actor (peek (:events (events/feed c {})))))))
-      (testing "a refused inline edit shows the refusal at its status"
-        (let [r (post h (str "/" issue "/close") {:resolution "done" :comment " "} :htmx true)]
-          (is (= 400 (:status r)))
-          (is (str/includes? (:body r) "invalid_argument"))))
-      (testing "without htmx, an inline edit redirects back"
-        (is (= 303 (:status (post h (str "/" issue "/labels") {:add "ux"}))))
-        (is (= ["ux"] (:labels (issues/get-issue c {:id issue})))))
-      (testing "a stale save keeps the text and moves the form to the current version"
-        (pages/update-page c {:id page :body "Underneath." :expected-version 1})
-        (let [r (post h (str "/" page "/edit") {:title "Context" :body "Mine\r\nhere" :expected_version 1})]
-          (is (= 409 (:status r)))
-          (is (str/includes? (:body r) "Mine\nhere</textarea>"))
-          (is (str/includes? (:body r) "name=\"expected_version\" type=\"hidden\" value=\"2\""))
-          (is (str/includes? (:body r) "<ins>Underneath</ins>")))
-        (let [r (post h (str "/" page "/edit") {:title "Context" :body "Mine\r\nhere" :expected_version 2
-                                                :summary "merged"})]
-          (is (= 303 (:status r)))
-          (is (= "Mine\nhere" (:body (pages/get-page c {:id page}))) "line endings are the store's")))
-      (testing "the banner names who changed the page since it was loaded"
-        (is (= "" (:body (call h :get (str "/" page "/banner") :query {:version 3}))))
-        (is (str/includes? (:body (call h :get (str "/" page "/banner") :query {:version 1}))
-                           "Changed since you opened it, by test, web"))))))
+      (testing "an omitted optional expected_version is omitted, and refusals keep their status"
+        (let [fresh (:id (pages/create-page c {:title "Fresh" :body "v1"}))
+              edit-uri (str "/" fresh "/edit")]
+          (is (= 303 (:status (post h edit-uri {:title "Fresh" :body "v2"}))))
+          (is (= 2 (:version (pages/get-page c {:id fresh}))))
+          (is (= 400 (:status (post h edit-uri {:title "Fresh" :body "v3" :expected_version "abc"}))))
+          (is (= 303 (:status (post h (str "/" fresh "/restore") {:revision 1}))))
+          (is (= 3 (:version (pages/get-page c {:id fresh}))))
+          (is (= 404 (:status (post h (str "/" issue "/edit") {:title "x" :body "y"}))))
+          (is (= 404 (:status (post h (str "/" issue "/restore") {:revision 1}))))
+          (is (= 404 (:status (post h "/CLO-99/edit" {:title "x" :body "y"}))))
+          (is (= 404 (:status (post h "/CLO-99/restore" {:revision 1})))))
+        (testing "the UI is localhost-hardened like the API"
+          (is (= 403 (:status (call h :get "/" :headers {"host" "evil.example:7290"}))))
+          (is (= 403 (:status (post h (str "/" issue "/comment") {:comment "x"} :headers {"origin" "http://evil"})))))
+        (testing "an inline edit answers the refreshed item, recording web"
+          (let [r (post h (str "/" issue "/comment") {:comment "Noted CLO-2."} :htmx true)]
+            (is (= 200 (:status r)))
+            (is (str/starts-with? (:body r) "<div id=\"item\">"))
+            (is (str/includes? (:body r) "Noted <a class=\"ref\" href=\"/CLO-2\"")))
+          (is (= "web" (:actor (peek (:events (events/feed c {})))))))
+        (testing "a refused inline edit shows the refusal at its status"
+          (let [r (post h (str "/" issue "/close") {:resolution "done" :comment " "} :htmx true)]
+            (is (= 400 (:status r)))
+            (is (str/includes? (:body r) "invalid_argument"))))
+        (testing "without htmx, an inline edit redirects back"
+          (is (= 303 (:status (post h (str "/" issue "/labels") {:add "ux"}))))
+          (is (= ["ux"] (:labels (issues/get-issue c {:id issue})))))
+        (testing "a stale save keeps the text and moves the form to the current version"
+          (pages/update-page c {:id page :body "Underneath." :expected-version 1})
+          (let [r (post h (str "/" page "/edit") {:title "Context" :body "Mine\r\nhere" :expected_version 1})]
+            (is (= 409 (:status r)))
+            (is (str/includes? (:body r) "Mine\nhere</textarea>"))
+            (is (str/includes? (:body r) "name=\"expected_version\" type=\"hidden\" value=\"2\""))
+            (is (str/includes? (:body r) "<ins>Underneath</ins>")))
+          (let [r (post h (str "/" page "/edit") {:title "Context" :body "Mine\r\nhere" :expected_version 2
+                                                  :summary "merged"})]
+            (is (= 303 (:status r)))
+            (is (= "Mine\nhere" (:body (pages/get-page c {:id page}))) "line endings are the store's")))
+        (testing "the banner names who changed the page since it was loaded"
+          (is (= "" (:body (call h :get (str "/" page "/banner") :query {:version 3}))))
+          (is (str/includes? (:body (call h :get (str "/" page "/banner") :query {:version 1}))
+                             "Changed since you opened it, by test, web")))))))

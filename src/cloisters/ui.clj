@@ -468,12 +468,15 @@
 
 (defn- blank->nil [s] (when-not (str/blank? s) s))
 
-(defn- query-long
-  "The numeric query parameter k as a long, or nil when absent. A present value that is not a number is refused."
-  [request k]
-  (when-let [s (get-in request [:query-params k])]
-    (or (parse-long s)
+(defn- long-param
+  "The numeric parameter k in params as a long, or nil when absent or blank. A present value that is not a number is
+  refused."
+  [params k]
+  (when-let [s (blank->nil (get params k))]
+    (or (parse-long (str s))
         (core/fail "invalid_argument" (str "The " k " parameter must be a number.") :argument k :value s))))
+
+(defn- query-long [request k] (long-param (:query-params request) k))
 
 (defn- edit!
   "Runs action's write for the item at id with the form's params."
@@ -603,14 +606,17 @@
             [:p.links [:a {:href (str "/" id "/history")} "history"]]
             (diff-body ctx id from to))))
 
-(defn- restore [ctx request id]
-  (let [{:strs [revision expected_version summary]} (:params request)
-        {:keys [refusal]} (refusing (pages/restore-page ctx (cond-> {:id id :revision (parse-long (str revision))
-                                                                     :expected-version (parse-long (str expected_version))}
+(defn- restore [ctx status-of request id]
+  (let [{:strs [summary] :as params} (:params request)
+        rev (long-param params "revision")
+        expected (long-param params "expected_version")
+        {:keys [refusal]} (refusing (pages/restore-page ctx (cond-> {:id id}
+                                                              rev (assoc :revision rev)
+                                                              expected (assoc :expected-version expected)
                                                               (blank->nil summary) (assoc :summary summary)))
                                     nil)]
     (if refusal
-      (respond (if (= "stale_version" (:code refusal)) 409 400)
+      (respond (status-of (:code refusal))
                (layout {:title id} (notice refusal) [:p [:a {:href (str "/" id "/history")} "Back to the history"]]))
       (see-other (str "/" id)))))
 
@@ -654,12 +660,12 @@
             [:h1 "Edit " [:a {:href (str "/" id)} id]]
             (editor ctx {:id id :action (str "/" id "/edit") :title title :body body :version version}))))
 
-(defn- save [ctx request id]
-  (let [{:strs [title body summary expected_version]} (:params request)
-        loaded (parse-long (str expected_version))
+(defn- save [ctx status-of request id]
+  (let [{:strs [title body summary] :as params} (:params request)
+        loaded (long-param params "expected_version")
         form {:title title :body (crlf->lf body) :summary summary}
-        {:keys [refusal]} (refusing (pages/update-page ctx (cond-> {:id id :expected-version loaded :title title
-                                                                    :body (crlf->lf body)}
+        {:keys [refusal]} (refusing (pages/update-page ctx (cond-> {:id id :title title :body (crlf->lf body)}
+                                                             loaded (assoc :expected-version loaded)
                                                              (blank->nil summary) (assoc :summary summary)))
                                     nil)]
     (cond
@@ -671,10 +677,10 @@
                              (editor ctx (assoc form :id id :action (str "/" id "/edit") :version current
                                                 :stale {:loaded loaded})))))
       :else
-      (respond 400 (layout {:title (str "Edit " id)}
-                           [:h1 "Edit " [:a {:href (str "/" id)} id]]
-                           (editor ctx (assoc form :id id :action (str "/" id "/edit") :version loaded
-                                              :refusal refusal)))))))
+      (respond (status-of (:code refusal)) (layout {:title (str "Edit " id)}
+                                                   [:h1 "Edit " [:a {:href (str "/" id)} id]]
+                                                   (editor ctx (assoc form :id id :action (str "/" id "/edit") :version loaded
+                                                                      :refusal refusal)))))))
 
 (defn- banner
   "Above the editor: who changed the page since version, linking the diff, or nothing. A malformed version is a
@@ -741,9 +747,9 @@
       (and get? (str/starts-with? sub "r")) (respond 200 (revision-page ctx id (parse-long (subs sub 1))))
       (and get? (= "diff" sub)) (respond 200 (diff-page ctx id request))
       (and get? (= "edit" sub)) (respond 200 (edit-page ctx id))
-      (and post? (= "edit" sub)) (save ctx request id)
+      (and post? (= "edit" sub)) (save ctx status-of request id)
       (and get? (= "banner" sub)) (banner ctx status-of id request)
-      (and post? (= "restore" sub)) (restore ctx request id)
+      (and post? (= "restore" sub)) (restore ctx status-of request id)
       (and post? (actions sub)) (inline-edit ctx status-of request id sub)
       :else nil)))
 

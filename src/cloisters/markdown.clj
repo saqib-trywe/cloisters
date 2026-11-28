@@ -26,6 +26,13 @@
   (when-let [[_ k n] (some->> href (re-matches url-path) second (re-matches id-path))]
     [[k (parse-long n)]]))
 
+(defn- internal-target
+  "The id a link names only when the link stays on this site. Mentions count /KEY-N on any host, but an external link
+  must not be styled as a trusted local ref."
+  [href]
+  (when (and (str/starts-with? (str href) "/") (not (str/starts-with? (str href) "//")))
+    (link-target href)))
+
 (defn- walk [node]
   (case (:type node)
     ;; code never counts; raw HTML and image alt text are not prose the UI links
@@ -133,7 +140,7 @@
       :hardbreak [[:br]]
       :footnote-ref [[:sup [:a {:href (str "#fn-" (:ref n)) :id (str "fnref-" (:ref n))} (:label n)]]]
       :link (let [{:keys [href title]} attrs
-                  [target] (link-target href)
+                  [target] (internal-target href)
                   info (some-> target refer)]
               (if (safe-url? href)
                 [(into [:a (cond-> {:href href}

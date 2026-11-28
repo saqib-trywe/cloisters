@@ -71,6 +71,12 @@
         (is (= "stale_version" (:error (rejection #(pages/update-page c {:id id :expected-version 3 :body "x"})))))
         (is (= 5 (:version (pages/update-page c {:id id :expected-version 4 :body "x"}))))))))
 
+(deftest literal-body-edits
+  (with-ctx [c (fx/ctx)]
+    (let [id (new! c "Plan" :body "cost $5")]
+      (pages/update-page c {:id id :body-edits [{:old "$5" :new "$6\\7"}]})
+      (is (= "cost $6\\7" (:body (get-page c id)))))))
+
 (deftest moves
   (with-ctx [c (fx/ctx)]
     (let [a (new! c "A")

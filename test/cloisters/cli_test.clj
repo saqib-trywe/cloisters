@@ -252,6 +252,27 @@
           (is (str/includes? (out "page" "diff" "CLO-1") "CLO-1 r2 → r3"))
           (is (str/starts-with? (out "page" "restore" "CLO-1" "1" "-m" "undo") "CLO-1  page  Glossary\nversion r4")))))))
 
+;; ---------------------------------------------------------------- running a jar without an install
+
+(deftest jar-runtime-ignores-recorded-java
+  (with-daemon
+    (fn [{:keys [home]}]
+      (let [dir (bound-dir)
+            record (io/file home "data" "lib" "install.edn")
+            stale-java (str (io/file home "data" "lib" "missing-java"))
+            jar (io/file (fx/tmp-dir) "not-a-daemon.jar")]
+        (io/make-parents record)
+        (spit record (pr-str {:java stale-java :jar (str jar)}))
+        (spit jar "not a jar")
+        (testing "--jar uses the JDK on PATH, not the one install recorded"
+          (let [{:keys [exit err]} (run-cli home dir ["daemon" "export" (str (io/file home "export.jsonl"))
+                                                      "--jar" (str jar)]
+                                            :env {"JAVA_HOME" (System/getProperty "java.home")})]
+            (is (pos? exit) err)
+            (is (str/includes? err "Invalid or corrupt jarfile") err)
+            (is (not (str/includes? err stale-java)) err)
+            (is (not (re-find #"(?i)cannot (run|resolve) program|no such file or directory" err)) err)))))))
+
 ;; ---------------------------------------------------------------- the stdio MCP proxy
 
 (def ^:private modern-meta

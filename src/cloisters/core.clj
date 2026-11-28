@@ -244,7 +244,7 @@
   [body edits]
   (reduce (fn [^String body [i {:keys [old new] :as edit}]]
             (case (occurrences body old)
-              1 (str/replace-first body old (str/re-quote-replacement new))
+              1 (str/replace-first body old new)
               0 (fail "edit_mismatch" (str "body_edits[" i "]: its old text is not in the body. Read the body again "
                                            "and quote it exactly.")
                       :index i :edit edit :reason "missing")
