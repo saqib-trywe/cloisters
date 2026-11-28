@@ -35,10 +35,19 @@
 (defn- move! [^File from ^File to]
   (Files/move (.toPath from) (.toPath to) (into-array CopyOption [StandardCopyOption/ATOMIC_MOVE])))
 
+(defn- check-destinations!
+  "Refuses before anything is touched when a path we would write through already exists."
+  [files]
+  (doseq [^File f files]
+    (when (.exists f)
+      (refuse (str "the restore destination " f " already exists; move it aside first")
+              {:destination (str f)}))))
+
 (defn restore!
   "Restores the snapshot s (a path, or a name in the backups directory) as the store in dirs, at now. Returns
-  {:snapshot :store :moved-aside}, where moved-aside is nil when there was no store. Throws, changing nothing, when a
-  daemon holds the lock or the snapshot fails its checks."
+  {:snapshot :store :moved-aside}, where moved-aside is nil when there was no store. Refuses, changing nothing, when a
+  daemon holds the lock, the snapshot fails its checks, or a destination is occupied. A failure partway through moves
+  any files already put aside back and removes the staged copy."
   [dirs s ^Instant now]
   (let [held (lock/acquire! (paths/lock-file dirs) {:port nil :version "restore"})]
     (try
@@ -53,18 +62,37 @@
             (refuse (str snap " is at schema v" v ", but this daemon knows only up to v" known "; run a newer daemon")
                     {:snapshot (str snap) :snapshot-version v :daemon-version known})))
         (.mkdirs backups)
-        (let [aside (when (.exists target)
-                      (let [base (str "pre-restore-" (.format stamp now) ".db")]
-                        ;; the WAL and shared-memory files go with the store, so the copy aside loses nothing
-                        (doseq [suffix ["-wal" "-shm"]
-                                :let [f (io/file (str target suffix))]
-                                :when (.exists f)]
-                          (move! f (io/file backups (str base suffix))))
-                        (let [f (io/file backups base)]
-                          (move! target f)
-                          f)))
-              tmp (io/file (.getParentFile target) (str (.getName target) ".restoring"))]
-          (Files/copy (.toPath snap) (.toPath tmp) (into-array CopyOption [StandardCopyOption/REPLACE_EXISTING]))
-          (move! tmp target)
-          {:snapshot snap :store target :moved-aside aside}))
+        (let [base (str "pre-restore-" (.format stamp now) ".db")
+              aside-file (io/file backups base)
+              wal (io/file (str target "-wal"))
+              shm (io/file (str target "-shm"))
+              had-store (.exists target)
+              ;; the WAL and shared-memory files go with the store, so the move aside loses nothing
+              moving (cond-> []
+                       (.exists wal) (conj [wal (io/file backups (str base "-wal"))])
+                       (.exists shm) (conj [shm (io/file backups (str base "-shm"))])
+                       had-store (conj [target aside-file]))
+              tmp (io/file (.getParentFile target) (str (.getName target) ".restoring"))
+              moved (atom [])
+              undo! (fn []
+                      (doseq [[from to] (reverse @moved)]
+                        (when (and (.exists ^File to) (not (.exists ^File from)))
+                          (move! to from)))
+                      (when (.exists tmp) (io/delete-file tmp)))]
+          (check-destinations! (into [tmp] (map second moving)))
+          (try
+            (Files/copy (.toPath snap) (.toPath tmp) (into-array CopyOption [StandardCopyOption/REPLACE_EXISTING]))
+            (catch Exception e
+              (when (.exists tmp) (io/delete-file tmp))
+              (throw e)))
+          (try
+            (doseq [[from to] moving]
+              (move! from to)
+              (swap! moved conj [from to]))
+            (move! tmp target)
+            {:snapshot snap :store target :moved-aside (when had-store aside-file)}
+            (catch Exception e
+              (try (undo!)
+                   (catch Exception rollback (.addSuppressed e rollback)))
+              (throw e)))))
       (finally (lock/release! held)))))

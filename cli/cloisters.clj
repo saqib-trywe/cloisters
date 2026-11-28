@@ -607,16 +607,17 @@
           :else (:java info))))
 
 (defn- runtime
-  "[java jar] for running the daemon jar: --jar and the JDK on PATH, else what install recorded."
+  "[java jar] for running the daemon jar: with --jar, find the JDK now ($JAVA_HOME or PATH) and ignore any install
+  record; otherwise use the recorded pair."
   [opts]
-  (let [rec (installed)]
-    (cond
-      (:jar opts) (if (fs/exists? (:jar opts))
-                    [(or (:java rec) (find-java)) (str (fs/absolutize (:jar opts)))]
-                    (usage! (str "no daemon jar at " (:jar opts))))
-      rec [(:java rec) (:jar rec)]
-      :else (fail! 1 (str "no daemon installed in " (lib) ": run cloisters daemon install, or pass --jar "
-                          "target/cloisters-daemon.jar")))))
+  (if-let [jar (:jar opts)]
+    (if (fs/exists? jar)
+      [(find-java) (str (fs/absolutize jar))]
+      (usage! (str "no daemon jar at " jar)))
+    (if-let [rec (installed)]
+      [(:java rec) (:jar rec)]
+      (fail! 1 (str "no daemon installed in " (lib) ": run cloisters daemon install, or pass --jar "
+                    "target/cloisters-daemon.jar")))))
 
 (defn- jar-command [opts & args]
   (let [[java jar] (runtime opts)]

@@ -275,7 +275,11 @@
         (issues/update-issue c {:id id :body "a a"})
         (is (= {:error "edit_mismatch" :index 0 :reason "ambiguous"}
                (select-keys (rejection #(issues/update-issue c {:id id :body-edits [{:old "a" :new "b"}]}))
-                            [:error :index :reason])))))))
+                            [:error :index :reason]))))
+      (testing "replacements are literal: $ and backslashes stay data"
+        (issues/update-issue c {:id id :body "cost $5 and [x]"})
+        (issues/update-issue c {:id id :body-edits [{:old "$5" :new "$6"} {:old "[x]" :new "\\y"}]})
+        (is (= "cost $6 and \\y" (:body (get-issue c id))))))))
 
 (deftest one-event-per-write
   (with-ctx [c (fx/ctx)]
